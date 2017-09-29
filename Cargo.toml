@@ -1,0 +1,20 @@
+[package]
+name = "macro-machines"
+version = "0.0.3"
+authors = ["Shane Pearman <spearman@github.com>"]
+
+# remote dependencies
+[dependencies]
+colored = "1.*"
+escapade = "0.0.*"
+log = "0.3.*"
+unwrap = "1.*"
+
+# remote dev dependencies
+[dev-dependencies]
+simplelog = "0.4.*"
+
+# local dev dependencies
+[dev-dependencies.rs-utils]
+version = "0.0.*"
+path = "/home/spearman/rs/local/rs-utils/"
