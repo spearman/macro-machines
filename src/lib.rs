@@ -13,11 +13,14 @@ macro_rules! def_machine {
         $(state $state:ident {})+
       ]
       EVENTS [
-        $(event $event:ident <$source:ident> => <$target:ident> {})+
+        $(event $event:ident <$source:ident> => <$target:ident>
+          $($action:block)*
+        )+
       ]
       DATA [
         $($data_name:ident : $data_type:ty $(= $data_default:expr)*),*
       ]
+      $(self_reference: $self_reference:ident)*
       initial_state: $initial:ident $({
         $(initial_action: $initial_action:block)*
       })*
@@ -62,13 +65,16 @@ macro_rules! def_machine {
     impl $machine {
       pub fn new() -> Self {
         trace!("{}::new", stringify!($machine));
-        $($($initial_action)*)*
-        $machine {
+        let mut _new = $machine {
           state: State::initial(),
           $($data_name:
             def_machine!{ @impl_default_expr $($data_default)* }
           ),*
-        }
+        };
+        $(let $self_reference = _new;)*
+        $($($initial_action)*)*
+        $(let _new = $self_reference;)*
+        _new
       }
 
       pub fn handle_event (&mut self, event : Event)
@@ -80,6 +86,10 @@ macro_rules! def_machine {
             if self.state.id == source {
               trace!("<<< Ok: {:?} => {:?}", source, target);
               self.state.id = target;
+              $(let $self_reference = self;)*
+              match event.id {
+                $(EventId::$event => $($action)*)+
+              }
               Ok (())
             } else {
               trace!("<<< Err: current state ({:?}) != source state ({:?})",
@@ -94,18 +104,15 @@ macro_rules! def_machine {
     impl Drop for $machine {
       fn drop (&mut self) {
         trace!("{}::drop", stringify!($machine));
-        match self {
-          &mut $machine { ref state$(, $data_name)*, .. } => {
-            let _state = state;
-            $(if _state.id != StateId::$terminal {
-              trace!("<<< current state ({:?}) != terminal state ({:?})",
-                _state.id, StateId::$terminal);
-              $($($terminate_failure)*)*
-            } else {
-              $($($terminate_success)*)*
-            })*
-          }
-        };
+        $(let $self_reference = self;)*
+        $(
+        if $self_reference.state.id != StateId::$terminal {
+          trace!("<<< current state ({:?}) != terminal state ({:?})",
+            $self_reference.state.id, StateId::$terminal);
+          $($($terminate_failure)*)*
+        } else {
+          $($($terminate_success)*)*
+        })*
       }
     }
 
@@ -178,6 +185,7 @@ macro_rules! def_machine {
   //
   (
     $machine:ident
+    $(<$($self_reference:ident)*>)*
     $((
       $($data_name:ident : $data_type:ty $(= $data_default:expr)*),*
     ))*
@@ -186,7 +194,9 @@ macro_rules! def_machine {
         $(state $state:ident {})+
       ]
       EVENTS [
-        $(event $event:ident <$source:ident> => <$target:ident> {})+
+        $(event $event:ident <$source:ident> => <$target:ident>
+          $($action:block)*
+        )+
       ]
       initial_state: $initial:ident $({
         $(initial_action: $initial_action:block)*
@@ -204,11 +214,14 @@ macro_rules! def_machine {
           $(state $state {})+
         ]
         EVENTS [
-          $(event $event <$source> => <$target> {})+
+          $(event $event <$source> => <$target> $(
+            $action
+          )*)+
         ]
         DATA [
           $($($data_name : $data_type $(= $data_default)*),*)*
         ]
+        $($(self_reference: $self_reference)*)*
         initial_state: $initial $({
           $(initial_action: $initial_action)*
         })*
