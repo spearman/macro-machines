@@ -8,7 +8,11 @@ macro_rules! def_machine {
   //
   //  main implementation rule
   //
-  ( machine $machine:ident {
+  ( machine $machine:ident
+      $(<$(
+        $type_var:ident $(: { $($type_constraint:path),+ })*
+      ),+>)*
+    {
       STATES [
         $(state $state:ident {})+
       ]
@@ -33,9 +37,14 @@ macro_rules! def_machine {
   ) => {
 
     #[derive(Clone,Debug,PartialEq)]
-    pub struct $machine {
-      state : State,
-      $($data_name : $data_type,)*
+    pub struct $machine $(<$($type_var),+>)* where
+    $($(
+      $type_var : std::fmt::Debug,
+      $($($type_var : $type_constraint),+)*
+    ),+)*
+    {
+      pub state : State,
+      $(pub $data_name : $data_type,)*
     }
 
     #[derive(Clone,Debug,PartialEq)]
@@ -63,19 +72,18 @@ macro_rules! def_machine {
       $($event),+
     }
 
-    impl $machine {
-      pub fn new() -> Self {
-        trace!("{}::new", stringify!($machine));
-        let mut _new = $machine {
-          state: State::initial(),
-          $($data_name:
-            def_machine!{ @impl_default_expr $($data_default)* }
-          ),*
-        };
-        $(let $self_reference = _new;)*
-        $($($initial_action)*)*
-        $(let _new = $self_reference;)*
-        _new
+    impl $(<$($type_var),+>)* $machine $(<$($type_var),+>)* where
+    $($(
+      $type_var : std::fmt::Debug,
+      $($($type_var : $type_constraint),+)*
+    ),+)*
+    {
+      pub fn report() where $($($type_var : 'static),+)* {
+        let machine_name = stringify!($machine);
+        let machine_type = unsafe { std::intrinsics::type_name::<Self>() };
+        println!("{} report...", machine_name);
+        println!("size of {}: {}", machine_type, std::mem::size_of::<Self>());
+        println!("...{} report", machine_name);
       }
 
       pub fn handle_event (&mut self, event : Event)
@@ -117,7 +125,33 @@ macro_rules! def_machine {
 
     } // end impl $machine
 
-    impl Drop for $machine {
+    impl $(<$($type_var),+>)* $machine $(<$($type_var),+>)* where
+    $($(
+      $type_var : Default + std::fmt::Debug,
+      $($($type_var : $type_constraint),+)*
+    ),+)*
+    {
+      pub fn new() -> Self {
+        trace!("{}::new", stringify!($machine));
+        let mut _new = Self {
+          state: State::initial(),
+          $($data_name:
+            def_machine!{ @impl_default_expr $($data_default)* }
+          ),*
+        };
+        $(let $self_reference = _new;)*
+        $($($initial_action)*)*
+        $(let _new = $self_reference;)*
+        _new
+      }
+    }
+
+    impl $(<$($type_var),+>)* Drop for $machine $(<$($type_var),+>)* where
+    $($(
+      $type_var : std::fmt::Debug,
+      $($($type_var : $type_constraint),+)*
+    ),+)*
+    {
       fn drop (&mut self) {
         trace!("{}::drop", stringify!($machine));
         $(let $self_reference = self;)*
@@ -315,33 +349,23 @@ macro_rules! def_machine {
 
     let mut data_fields = std::vec::Vec::<String>::new();
     let mut data_types = std::vec::Vec::<String>::new();
-    let mut data_defaults = std::vec::Vec::<String>::new();
-    // the following 3 lines are to avoid unused_mut warnings
+    // the following 2 lines are to avoid unused_mut warnings
     data_fields.clear();
     data_types.clear();
-    data_defaults.clear();
 
     $({
       data_fields.push (stringify!($data_name).to_string());
       data_types.push (stringify!($data_type).to_string());
-      let default_val : $data_type = def_machine!{
-        @impl_default_expr $($data_default)*
-      };
-      data_defaults.push (format!("{:?}", default_val));
     })*
 
     debug_assert_eq!(data_fields.len(), data_types.len());
-    debug_assert_eq!(data_types.len(),  data_defaults.len());
 
     //
     //  for each data field, print a line
     //
-    // TODO: we are manually aligning the columns of the field name, field
-    // type, and default values, is there a better way ? (record node, html
-    // table, format width?)
+    // TODO: we are manually aligning the columns of the field name and field
+    // type, is there a better way ? (record node, html table, format width?)
     if !data_types.is_empty() {
-      debug_assert!(!data_defaults.is_empty());
-
       let mut data_string = String::new();
       let separator = ",<BR ALIGN=\"LEFT\"/>";
 
@@ -356,6 +380,7 @@ macro_rules! def_machine {
         }
       );
 
+      /*
       let longest_typename = data_types.iter().fold (0,
         |longest, ref typename| {
           let len = typename.len();
@@ -366,6 +391,7 @@ macro_rules! def_machine {
           }
         }
       );
+      */
 
       for (i,f) in data_fields.iter().enumerate() {
         use escapade::Escapable;
@@ -373,14 +399,10 @@ macro_rules! def_machine {
         let spacer1 : String = std::iter::repeat (' ').take(
           longest_fieldname - f.len()
         ).collect();
-        let spacer2 : String = std::iter::repeat (' ').take(
-          longest_typename - data_types[i].len()
-        ).collect();
 
         data_string.push_str (
-          format!("{}{} : {}{} = {}",
-            f, spacer1, data_types[i], spacer2,
-            data_defaults[i])
+          format!("{}{} : {}",
+            f, spacer1, data_types[i])
           .escape().into_inner().as_str()
         );
         data_string.push_str (format!("{}", separator).as_str());
@@ -889,10 +911,13 @@ macro_rules! def_machine {
   //  alternate syntax
   //
   ( $machine:ident
-    $(<$($self_reference:ident)*>)*
-    $((
-      $($data_name:ident : $data_type:ty $(= $data_default:expr)*),*
-    ))*
+    $(<$(
+      $type_var:ident $(: { $($type_constraint:path),+ })*
+    ),+>)*
+    $(($(
+      $data_name:ident : $data_type:ty $(= $data_default:expr)*
+    ),*))*
+    $(where self = $self_reference:ident)*
     {
       STATES [
         $(state $state:ident {})+
@@ -914,7 +939,7 @@ macro_rules! def_machine {
   ) => {
 
     def_machine!{
-      machine $machine {
+      machine $machine $(<$($type_var $(: { $($type_constraint),+ })*),+>)* {
         STATES [
           $(state $state {})+
         ]
@@ -924,7 +949,7 @@ macro_rules! def_machine {
         DATA [
           $($($data_name : $data_type $(= $data_default)*),*)*
         ]
-        $($(self_reference: $self_reference)*)*
+        $(self_reference: $self_reference)*
         initial_state: $initial $({
           $(initial_action: $initial_action)*
         })*

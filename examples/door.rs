@@ -1,4 +1,5 @@
 #![feature(const_fn)]
+#![feature(core_intrinsics)]
 
 #[macro_use] extern crate unwrap;
 #[macro_use] extern crate log;
@@ -11,7 +12,7 @@ extern crate rs_utils;
 #[macro_use] extern crate macro_machines;
 
 def_machine! {
-  Door <_door> (knock_count : u64) {
+  Door (knock_count : u64) where self = _door {
     STATES [
       state Closed {}
       state Opened {}
@@ -55,7 +56,7 @@ fn main () {
       simplelog::Config::default())
   };
 
-  println!("size of Door: {}", std::mem::size_of::<Door>());
+  Door::report();
 
   let mut f = unwrap!{ std::fs::File::create (format!("{}.dot", **example_name)) };
   unwrap!{ f.write_all (Door::dotfile().as_bytes()) };

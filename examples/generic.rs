@@ -12,7 +12,7 @@ extern crate rs_utils;
 #[macro_use] extern crate macro_machines;
 
 def_machine!{
-  machine M {
+  machine G <X : {Default}> {
     STATES [
       state S {}
       state T {}
@@ -20,7 +20,9 @@ def_machine!{
     EVENTS [
       event A <S> => <T> {}
     ]
-    DATA []
+    DATA [
+      x : X
+    ]
     initial_state: S
   }
 }
@@ -42,13 +44,17 @@ fn main () {
       simplelog::Config::default())
   };
 
-  M::report();
+  G::<u8>::report();
+
+  G::<f64>::report();
+
+  G::<(f64,f64,f64)>::report();
 
   let mut f = unwrap!{ std::fs::File::create (format!("{}.dot", **example_name)) };
-  unwrap!{ f.write_all (M::dotfile().as_bytes()) };
+  unwrap!{ f.write_all (G::<f64>::dotfile().as_bytes()) };
   std::mem::drop (f);
 
-  let mut m = M::new();
+  let mut m = G::<f64>::new();
   println!("m: {:?}", m);
 
   let e = EventId::A.into();
