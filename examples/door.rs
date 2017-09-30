@@ -43,8 +43,10 @@ pub const LOG_LEVEL_FILTER
   : simplelog::LogLevelFilter = simplelog::LogLevelFilter::Trace;
 
 fn main () {
+  use std::io::Write;
   use colored::Colorize;
-  println!("{}", format!("{} main...", *rs_utils::process::FILE_NAME)
+  let example_name = &rs_utils::process::FILE_NAME;
+  println!("{}", format!("{} main...", **example_name)
     .green().bold());
 
   unwrap!{
@@ -52,6 +54,12 @@ fn main () {
       LOG_LEVEL_FILTER,
       simplelog::Config::default())
   };
+
+  println!("size of Door: {}", std::mem::size_of::<Door>());
+
+  let mut f = unwrap!{ std::fs::File::create (format!("{}.dot", **example_name)) };
+  unwrap!{ f.write_all (Door::dotfile().as_bytes()) };
+  std::mem::drop (f);
 
   let mut door = Door::new();
   println!("door: {:?}", door);
@@ -68,6 +76,6 @@ fn main () {
   unwrap!(door.handle_event (e));
   println!("door: {:?}", door);
 
-  println!("{}", format!("...{} main", *rs_utils::process::FILE_NAME)
+  println!("{}", format!("...{} main", **example_name)
     .green().bold());
 }

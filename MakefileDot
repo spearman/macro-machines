@@ -1,0 +1,6 @@
+.PHONY: foo
+%: foo
+	dot -Tpng $@.dot > $@.png
+
+# dummy rule to prevent MakefileDot from trying to make itself
+MakefileDot: ;
