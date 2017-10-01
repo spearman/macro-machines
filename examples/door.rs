@@ -19,7 +19,7 @@ def_machine! {
     ]
     EVENTS [
       event Knock <Closed> => <Closed> {
-        _door.knock_count += 1;
+        _door.data.knock_count += 1;
       }
       event Open  <Closed> => <Opened> {}
       event Close <Opened> => <Closed> {}
@@ -27,13 +27,13 @@ def_machine! {
     initial_state:  Closed {
       initial_action: {
         println!("hello");
-        println!("knock_count: {:?}", _door.knock_count);
+        println!("knock_count: {:?}", _door.data.knock_count);
       }
     }
     terminal_state: Closed {
       terminate_failure: { panic!("door was left opened") }
       terminate_success: {
-        println!("knock_count: {:?}", _door.knock_count);
+        println!("knock_count: {:?}", _door.data.knock_count);
         println!("goodbye")
       }
     }
@@ -58,11 +58,12 @@ fn main () {
 
   Door::report();
 
-  let mut f = unwrap!{ std::fs::File::create (format!("{}.dot", **example_name)) };
+  let dotfile_name = format!("{}.dot", **example_name);
+  let mut f = unwrap!{ std::fs::File::create (dotfile_name) };
   unwrap!{ f.write_all (Door::dotfile().as_bytes()) };
   std::mem::drop (f);
 
-  let mut door = Door::new();
+  let mut door = Door::initial();
   println!("door: {:?}", door);
 
   let e = EventId::Knock.into();

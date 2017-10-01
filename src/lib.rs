@@ -39,12 +39,12 @@ macro_rules! def_machine {
     #[derive(Clone,Debug,PartialEq)]
     pub struct $machine $(<$($type_var),+>)* where
     $($(
-      $type_var : std::fmt::Debug,
+      $type_var : Default + std::fmt::Debug,
       $($($type_var : $type_constraint),+)*
     ),+)*
     {
-      pub state : State,
-      $(pub $data_name : $data_type,)*
+      state : State,
+      data  : Data $(<$($type_var),+>)*
     }
 
     #[derive(Clone,Debug,PartialEq)]
@@ -55,6 +55,16 @@ macro_rules! def_machine {
     #[derive(Clone,Debug,PartialEq)]
     pub struct Event {
       id : EventId
+    }
+
+    #[derive(Clone,Debug,PartialEq)]
+    pub struct Data $(<$($type_var),+>)* where
+    $($(
+      $type_var : Default + std::fmt::Debug,
+      $($($type_var : $type_constraint),+)*
+    ),+)*
+    {
+      $(pub $data_name : $data_type),*
     }
 
     #[derive(Clone,Debug,PartialEq)]
@@ -74,7 +84,7 @@ macro_rules! def_machine {
 
     impl $(<$($type_var),+>)* $machine $(<$($type_var),+>)* where
     $($(
-      $type_var : std::fmt::Debug,
+      $type_var : Default + std::fmt::Debug,
       $($($type_var : $type_constraint),+)*
     ),+)*
     {
@@ -86,6 +96,19 @@ macro_rules! def_machine {
         println!("...{} report", machine_name);
       }
 
+      pub fn initial() -> Self {
+        trace!("{}::new", stringify!($machine));
+        let mut _new = Self {
+          state: State::initial(),
+          data:  Data::initial()
+        };
+        {
+          $(let $self_reference = &mut _new;)*
+          $($($initial_action)*)*
+        }
+        _new
+      }
+
       pub fn handle_event (&mut self, event : Event)
         -> Result <(), macro_machines::HandleEventException>
       {
@@ -95,9 +118,11 @@ macro_rules! def_machine {
             if self.state.id == source {
               trace!("<<< Ok: {:?} => {:?}", source, target);
               self.state.id = target;
-              $(let $self_reference = self;)*
-              match event.id {
-                $(EventId::$event => $($action)*)+
+              {
+                $(let $self_reference = self;)*
+                match event.id {
+                  $(EventId::$event => $($action)*)+
+                }
               }
               Ok (())
             } else {
@@ -125,44 +150,63 @@ macro_rules! def_machine {
 
     } // end impl $machine
 
-    impl $(<$($type_var),+>)* $machine $(<$($type_var),+>)* where
+    impl $(<$($type_var),+>)* Drop for $machine $(<$($type_var),+>)* where
     $($(
       $type_var : Default + std::fmt::Debug,
       $($($type_var : $type_constraint),+)*
     ),+)*
     {
-      pub fn new() -> Self {
-        trace!("{}::new", stringify!($machine));
-        let mut _new = Self {
-          state: State::initial(),
-          $($data_name:
-            def_machine!{ @impl_default_expr $($data_default)* }
-          ),*
-        };
-        $(let $self_reference = _new;)*
-        $($($initial_action)*)*
-        $(let _new = $self_reference;)*
-        _new
-      }
-    }
-
-    impl $(<$($type_var),+>)* Drop for $machine $(<$($type_var),+>)* where
-    $($(
-      $type_var : std::fmt::Debug,
-      $($($type_var : $type_constraint),+)*
-    ),+)*
-    {
       fn drop (&mut self) {
         trace!("{}::drop", stringify!($machine));
+        let _state_id = self.state.id.clone();
         $(let $self_reference = self;)*
         $(
-        if $self_reference.state.id != StateId::$terminal {
+        if _state_id != StateId::$terminal {
           trace!("<<< current state ({:?}) != terminal state ({:?})",
-            $self_reference.state.id, StateId::$terminal);
+            _state_id, StateId::$terminal);
           $($($terminate_failure)*)*
         } else {
           $($($terminate_success)*)*
         })*
+      }
+    }
+
+    impl $(<$($type_var),+>)*
+      AsRef <Data $(<$($type_var),+>)*> for $machine $(<$($type_var),+>)* where
+    $($(
+      $type_var : Default + std::fmt::Debug,
+      $($($type_var : $type_constraint),+)*
+    ),+)*
+    {
+      #[inline]
+      fn as_ref (&self) -> &Data $(<$($type_var),+>)* {
+        &self.data
+      }
+    }
+
+    impl $(<$($type_var),+>)*
+      AsMut <Data $(<$($type_var),+>)*> for $machine $(<$($type_var),+>)* where
+    $($(
+      $type_var : Default + std::fmt::Debug,
+      $($($type_var : $type_constraint),+)*
+    ),+)*
+    {
+      #[inline]
+      fn as_mut (&mut self) -> &mut Data $(<$($type_var),+>)* {
+        &mut self.data
+      }
+    }
+
+    impl $(<$($type_var),+>)* Data $(<$($type_var),+>)* where
+    $($(
+      $type_var : Default + std::fmt::Debug,
+      $($($type_var : $type_constraint),+)*
+    ),+)*
+    {
+      pub fn initial() -> Self {
+        Self {
+          $($data_name: def_machine!(@impl_default_expr $($data_default)*)),*
+        }
       }
     }
 
@@ -347,29 +391,26 @@ macro_rules! def_machine {
       "    label=<{}<FONT FACE=\"Mono\"><BR/><BR/>",
       stringify!($machine)).as_str());
 
-    let mut data_fields = std::vec::Vec::<String>::new();
-    let mut data_types = std::vec::Vec::<String>::new();
-    // the following 2 lines are to avoid unused_mut warnings
-    data_fields.clear();
-    data_types.clear();
+    let mut _data_fields = std::vec::Vec::<String>::new();
+    let mut _data_types = std::vec::Vec::<String>::new();
 
     $({
-      data_fields.push (stringify!($data_name).to_string());
-      data_types.push (stringify!($data_type).to_string());
+      _data_fields.push (stringify!($data_name).to_string());
+      _data_types.push (stringify!($data_type).to_string());
     })*
 
-    debug_assert_eq!(data_fields.len(), data_types.len());
+    debug_assert_eq!(_data_fields.len(), _data_types.len());
 
     //
     //  for each data field, print a line
     //
     // TODO: we are manually aligning the columns of the field name and field
     // type, is there a better way ? (record node, html table, format width?)
-    if !data_types.is_empty() {
+    if !_data_types.is_empty() {
       let mut data_string = String::new();
       let separator = ",<BR ALIGN=\"LEFT\"/>";
 
-      let longest_fieldname = data_fields.iter().fold (0,
+      let longest_fieldname = _data_fields.iter().fold (0,
         |longest, ref fieldname| {
           let len = fieldname.len();
           if longest < len {
@@ -393,7 +434,7 @@ macro_rules! def_machine {
       );
       */
 
-      for (i,f) in data_fields.iter().enumerate() {
+      for (i,f) in _data_fields.iter().enumerate() {
         use escapade::Escapable;
 
         let spacer1 : String = std::iter::repeat (' ').take(
@@ -402,7 +443,7 @@ macro_rules! def_machine {
 
         data_string.push_str (
           format!("{}{} : {}",
-            f, spacer1, data_types[i])
+            f, spacer1, _data_types[i])
           .escape().into_inner().as_str()
         );
         data_string.push_str (format!("{}", separator).as_str());

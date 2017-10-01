@@ -12,7 +12,7 @@ extern crate rs_utils;
 #[macro_use] extern crate macro_machines;
 
 def_machine!{
-  machine G <X : {Default}> {
+  machine G <X> {
     STATES [
       state S {}
       state T {}
@@ -50,19 +50,21 @@ fn main () {
 
   G::<(f64,f64,f64)>::report();
 
-  let mut f = unwrap!{ std::fs::File::create (format!("{}.dot", **example_name)) };
+  let dotfile_name = format!("{}.dot", **example_name);
+  let mut f = unwrap!{ std::fs::File::create (dotfile_name) };
   unwrap!{ f.write_all (G::<f64>::dotfile().as_bytes()) };
   std::mem::drop (f);
 
-  let mut m = G::<f64>::new();
-  println!("m: {:?}", m);
+  //let mut g = G::<std::sync::mpsc::Receiver <f64>>::initial();
+  let mut g = G::<f64>::initial();
+  println!("g: {:?}", g);
 
   let e = EventId::A.into();
-  unwrap!{ m.handle_event (e) };
-  println!("m: {:?}", m);
+  unwrap!{ g.handle_event (e) };
+  println!("g: {:?}", g);
 
   let e = EventId::A.into();
-  assert_eq!(m.handle_event (e), Err (HandleEventException::WrongState));
+  assert_eq!(g.handle_event (e), Err (HandleEventException::WrongState));
 
   println!("{}", format!("...{} main", **example_name)
     .green().bold());

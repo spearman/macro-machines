@@ -44,11 +44,12 @@ fn main () {
 
   M::report();
 
-  let mut f = unwrap!{ std::fs::File::create (format!("{}.dot", **example_name)) };
+  let dotfile_name = format!("{}.dot", **example_name);
+  let mut f = unwrap!{ std::fs::File::create (dotfile_name) };
   unwrap!{ f.write_all (M::dotfile().as_bytes()) };
   std::mem::drop (f);
 
-  let mut m = M::new();
+  let mut m = M::initial();
   println!("m: {:?}", m);
 
   let e = EventId::A.into();
