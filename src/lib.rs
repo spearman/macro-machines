@@ -974,6 +974,18 @@ macro_rules! def_machine {
         }
       }
 
+      #[allow(dead_code)]
+      #[inline]
+      pub fn state (&self) -> &State {
+        &self.state
+      }
+
+      #[allow(dead_code)]
+      #[inline]
+      pub fn data (&self) -> &Data $(<$($type_var),+>)* {
+        &self.data
+      }
+
       pub fn handle_event (&mut self, event : Event)
         -> Result <(), macro_machines::HandleEventException>
       {
@@ -1041,6 +1053,11 @@ macro_rules! def_machine {
         State {
           id: StateId::initial()
         }
+      }
+
+      #[inline]
+      pub fn id (&self) -> &StateId {
+        &self.id
       }
     }
 
