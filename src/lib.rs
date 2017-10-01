@@ -3,6 +3,14 @@ pub enum HandleEventException {
   WrongState
 }
 
+/// State machines with a default `initial` state.
+///
+/// For each extended 'data' field, either the type must implement `Default`,
+/// or else a default expression is provided following `=`.
+///
+/// For a state machine that requires runtime initialization, see
+/// `def_machine_nodefault!`.
+
 #[macro_export]
 macro_rules! def_machine {
   //
@@ -36,68 +44,38 @@ macro_rules! def_machine {
 
   ) => {
 
-    #[derive(Clone,Debug,PartialEq)]
-    pub struct $machine $(<$($type_var),+>)* where
-    $($(
-      $type_var : Default + std::fmt::Debug,
-      $($($type_var : $type_constraint),+)*
-    ),+)*
-    {
-      state : State,
-      data  : Data $(<$($type_var),+>)*
-    }
-
-    #[derive(Clone,Debug,PartialEq)]
-    pub struct State {
-      id : StateId
-    }
-
-    #[derive(Clone,Debug,PartialEq)]
-    pub struct Event {
-      id : EventId
-    }
-
-    #[derive(Clone,Debug,PartialEq)]
-    pub struct Data $(<$($type_var),+>)* where
-    $($(
-      $type_var : Default + std::fmt::Debug,
-      $($($type_var : $type_constraint),+)*
-    ),+)*
-    {
-      $(pub $data_name : $data_type),*
-    }
-
-    #[derive(Clone,Debug,PartialEq)]
-    pub enum StateId {
-      $($state),+
-    }
-
-    #[derive(Debug,PartialEq)]
-    pub enum Transition {
-      External (StateId, StateId)
-    }
-
-    #[derive(Clone,Debug,PartialEq)]
-    pub enum EventId {
-      $($event),+
+    def_machine_base!{
+      machine $machine
+        $(<$($type_var $(: { $($type_constraint),+ })*),+>)*
+      {
+        STATES [
+          $(state $state {})+
+        ]
+        EVENTS [
+          $(event $event <$source> => <$target> $($action)*)+
+        ]
+        DATA [
+          $($data_name : $data_type $(= $data_default)*),*
+        ]
+        $(self_reference: $self_reference)*
+        initial_state: $initial $({
+          $(initial_action: $initial_action)*
+        })*
+        $(terminal_state: $terminal $({
+          $(terminate_failure: $terminate_failure)*
+          $(terminate_success: $terminate_success)*
+        })*)*
+      }
     }
 
     impl $(<$($type_var),+>)* $machine $(<$($type_var),+>)* where
     $($(
-      $type_var : Default + std::fmt::Debug,
+      $type_var : std::fmt::Debug,
       $($($type_var : $type_constraint),+)*
     ),+)*
     {
-      pub fn report() where $($($type_var : 'static),+)* {
-        let machine_name = stringify!($machine);
-        let machine_type = unsafe { std::intrinsics::type_name::<Self>() };
-        println!("{} report...", machine_name);
-        println!("size of {}: {}", machine_type, std::mem::size_of::<Self>());
-        println!("...{} report", machine_name);
-      }
-
       pub fn initial() -> Self {
-        trace!("{}::new", stringify!($machine));
+        trace!("{}::initial", stringify!($machine));
         let mut _new = Self {
           state: State::initial(),
           data:  Data::initial()
@@ -108,156 +86,17 @@ macro_rules! def_machine {
         }
         _new
       }
-
-      pub fn handle_event (&mut self, event : Event)
-        -> Result <(), macro_machines::HandleEventException>
-      {
-        trace!("{}::handle_event: {:?}", stringify!($machine), event);
-        match event.transition() {
-          Transition::External (source, target) => {
-            if self.state.id == source {
-              trace!("<<< Ok: {:?} => {:?}", source, target);
-              self.state.id = target;
-              {
-                $(let $self_reference = self;)*
-                match event.id {
-                  $(EventId::$event => $($action)*)+
-                }
-              }
-              Ok (())
-            } else {
-              trace!("<<< Err: current state ({:?}) != source state ({:?})",
-                self.state.id, source);
-              Err (macro_machines::HandleEventException::WrongState)
-            }
-          }
-        }
-      }
-
-      def_machine!{
-        @impl_fn_dotfile
-        machine $machine {
-          STATES    [ $(state $state {})+ ]
-          EVENTS    [ $(event $event <$source> => <$target> $($action)*)+ ]
-          EVENTS_TT [ $(event $event <$source> => <$target> $($action)*)+ ]
-          DATA      [ $($data_name : $data_type $(= $data_default)*),* ]
-          initial_state:  $initial
-          $(terminal_state: $terminal $({
-            $(terminate_failure: $terminate_failure)*
-          })*)*
-        }
-      }
-
-    } // end impl $machine
-
-    impl $(<$($type_var),+>)* Drop for $machine $(<$($type_var),+>)* where
-    $($(
-      $type_var : Default + std::fmt::Debug,
-      $($($type_var : $type_constraint),+)*
-    ),+)*
-    {
-      fn drop (&mut self) {
-        trace!("{}::drop", stringify!($machine));
-        let _state_id = self.state.id.clone();
-        $(let $self_reference = self;)*
-        $(
-        if _state_id != StateId::$terminal {
-          trace!("<<< current state ({:?}) != terminal state ({:?})",
-            _state_id, StateId::$terminal);
-          $($($terminate_failure)*)*
-        } else {
-          $($($terminate_success)*)*
-        })*
-      }
-    }
-
-    impl $(<$($type_var),+>)*
-      AsRef <Data $(<$($type_var),+>)*> for $machine $(<$($type_var),+>)* where
-    $($(
-      $type_var : Default + std::fmt::Debug,
-      $($($type_var : $type_constraint),+)*
-    ),+)*
-    {
-      #[inline]
-      fn as_ref (&self) -> &Data $(<$($type_var),+>)* {
-        &self.data
-      }
-    }
-
-    impl $(<$($type_var),+>)*
-      AsMut <Data $(<$($type_var),+>)*> for $machine $(<$($type_var),+>)* where
-    $($(
-      $type_var : Default + std::fmt::Debug,
-      $($($type_var : $type_constraint),+)*
-    ),+)*
-    {
-      #[inline]
-      fn as_mut (&mut self) -> &mut Data $(<$($type_var),+>)* {
-        &mut self.data
-      }
     }
 
     impl $(<$($type_var),+>)* Data $(<$($type_var),+>)* where
     $($(
-      $type_var : Default + std::fmt::Debug,
+      $type_var : std::fmt::Debug,
       $($($type_var : $type_constraint),+)*
     ),+)*
     {
       pub fn initial() -> Self {
         Self {
-          $($data_name: def_machine!(@impl_default_expr $($data_default)*)),*
-        }
-      }
-    }
-
-    impl State {
-      pub const fn initial() -> Self {
-        State {
-          id: StateId::initial()
-        }
-      }
-    }
-
-    impl StateId {
-      pub const fn initial() -> Self {
-        StateId::$initial
-      }
-      $(
-      pub const fn terminal() -> Self {
-        StateId::$terminal
-      }
-      )*
-    }
-
-    impl From <StateId> for State {
-      fn from (id : StateId) -> Self {
-        State {
-          id: id
-        }
-      }
-    }
-
-    impl EventId {
-      pub fn transition (&self) -> Transition {
-        match self {
-          $(
-          &EventId::$event =>
-            Transition::External (StateId::$source, StateId::$target)
-          ),+
-        }
-      }
-    }
-
-    impl Event {
-      pub fn transition (&self) -> Transition {
-        self.id.transition()
-      }
-    }
-
-    impl From <EventId> for Event {
-      fn from (id : EventId) -> Self {
-        Event {
-          id: id
+          $($data_name: def_machine!(@impl_expr_default $($data_default)*)),*
         }
       }
     }
@@ -265,14 +104,24 @@ macro_rules! def_machine {
   };
 
   //
-  //  @impl_default_expr: override default
+  //  @impl_expr_default: override default
   //
-  ( @impl_default_expr $default:expr ) => { $default };
+  ( @impl_expr_default $default:expr ) => { $default };
 
   //
-  //  @impl_default_expr: use default
+  //  @impl_expr_default: use default
   //
-  ( @impl_default_expr ) => { Default::default() };
+  ( @impl_expr_default ) => { Default::default() };
+
+  //
+  //  @impl_expr_nodefault: override default
+  //
+  ( @impl_expr_nodefault $default:expr ) => { $default };
+
+  //
+  //  @impl_expr_nodefault: no default
+  //
+  ( @impl_expr_nodefault ) => { return None };
 
   //
   //  @impl_fn_dotfile
@@ -480,7 +329,7 @@ macro_rules! def_machine {
           {
             use escapade::Escapable;
             let default_val : $param_type = def_machine!{
-              @impl_default_expr $($param_default)*
+              @impl_expr_default $($param_default)*
             };
             s.push_str (
               format!("{} : {} = {}, ",
@@ -581,7 +430,7 @@ macro_rules! def_machine {
       var_fields.push (stringify!($var_name).to_string());
       var_types.push (stringify!($var_type).to_string());
       let default_val : $var_type = def_machine!{
-        @impl_default_expr $($var_default)*
+        @impl_expr_default $($var_default)*
       };
       var_defaults.push (format!("{:?}", default_val));
     })*
@@ -728,7 +577,7 @@ macro_rules! def_machine {
           $({
             use escapade::Escapable;
             let default_val : $param_type = def_machine!{
-              @impl_default_expr $($param_default)*
+              @impl_expr_default $($param_default)*
             };
             s.push_str (
               format!("{} : {} = {}, ",
@@ -839,7 +688,7 @@ macro_rules! def_machine {
         open_params = true;
       }
       let default_val : $param_type = def_machine!{
-        @impl_default_expr $($param_default)*
+        @impl_expr_default $($param_default)*
       };
       s.push_str (
         format!("{} : {} = {}, ",
@@ -1003,3 +852,358 @@ macro_rules! def_machine {
   };
 
 } // end def_machine!
+
+#[macro_export]
+macro_rules! def_machine_nodefault {
+  //
+  //  main implementation rule
+  //
+  ( machine $machine:ident
+      $(<$(
+        $type_var:ident $(: { $($type_constraint:path),+ })*
+      ),+>)*
+    {
+      STATES [
+        $(state $state:ident {})+
+      ]
+      EVENTS [
+        $(event $event:ident <$source:ident> => <$target:ident>
+          $($action:block)*
+        )+
+      ]
+      DATA [
+        $($data_name:ident : $data_type:ty $(= $data_default:expr)*),*
+      ]
+      $(self_reference: $self_reference:ident)*
+      initial_state: $initial:ident $({
+        $(initial_action: $initial_action:block)*
+      })*
+      $(terminal_state: $terminal:ident $({
+        $(terminate_failure: $terminate_failure:block)*
+        $(terminate_success: $terminate_success:block)*
+      })*)*
+    }
+
+  ) => {
+
+    def_machine_base!{
+      machine $machine
+        $(<$($type_var $(: { $($type_constraint),+ })*),+>)*
+      {
+        STATES [
+          $(state $state {})+
+        ]
+        EVENTS [
+          $(event $event <$source> => <$target> $($action)*)+
+        ]
+        DATA [
+          $($data_name : $data_type $(= $data_default)*),*
+        ]
+        $(self_reference: $self_reference)*
+        initial_state: $initial $({
+          $(initial_action: $initial_action)*
+        })*
+        $(terminal_state: $terminal $({
+          $(terminate_failure: $terminate_failure)*
+          $(terminate_success: $terminate_success)*
+        })*)*
+      }
+    }
+
+    impl $(<$($type_var),+>)* Data $(<$($type_var),+>)* where
+    $($(
+      $type_var : std::fmt::Debug,
+      $($($type_var : $type_constraint),+)*
+    ),+)*
+    {
+      // TODO: indicate which arguments are missing in case of failure
+      pub fn new ($($data_name : Option <$data_type>),*) -> Option <Self> {
+        Some (Self {
+          $($data_name: {
+            if let Some ($data_name) = $data_name {
+              $data_name
+            } else {
+              def_machine!(@impl_expr_nodefault $($data_default)*)
+            }
+          }),*
+        })
+      }
+    }
+
+  };
+
+  //
+  //  alternate syntax
+  //
+  ( $machine:ident
+    $(<$(
+      $type_var:ident $(: { $($type_constraint:path),+ })*
+    ),+>)*
+    $(($(
+      $data_name:ident : $data_type:ty $(= $data_default:expr)*
+    ),*))*
+    $(where self = $self_reference:ident)*
+    {
+      STATES [
+        $(state $state:ident {})+
+      ]
+      EVENTS [
+        $(event $event:ident <$source:ident> => <$target:ident>
+          $($action:block)*
+        )+
+      ]
+      initial_state: $initial:ident $({
+        $(initial_action: $initial_action:block)*
+      })*
+      $(terminal_state: $terminal:ident $({
+        $(terminate_failure: $terminate_failure:block)*
+        $(terminate_success: $terminate_success:block)*
+      })*)*
+    }
+
+  ) => {
+
+    def_machine_nodefault!{
+      machine $machine $(<$($type_var $(: { $($type_constraint),+ })*),+>)* {
+        STATES [
+          $(state $state {})+
+        ]
+        EVENTS [
+          $(event $event <$source> => <$target> $($action)*)+
+        ]
+        DATA [
+          $($($data_name : $data_type $(= $data_default)*),*)*
+        ]
+        $(self_reference: $self_reference)*
+        initial_state: $initial $({
+          $(initial_action: $initial_action)*
+        })*
+        $(terminal_state: $terminal $({
+          $(terminate_failure: $terminate_failure)*
+          $(terminate_success: $terminate_success)*
+        })*)*
+      }
+    }
+
+  };
+
+}
+
+#[allow(unused_macros)]
+#[macro_export]
+macro_rules! def_machine_base {
+  //
+  //  main implementation rule
+  //
+  ( machine $machine:ident
+      $(<$(
+        $type_var:ident $(: { $($type_constraint:path),+ })*
+      ),+>)*
+    {
+      STATES [
+        $(state $state:ident {})+
+      ]
+      EVENTS [
+        $(event $event:ident <$source:ident> => <$target:ident>
+          $($action:block)*
+        )+
+      ]
+      DATA [
+        $($data_name:ident : $data_type:ty $(= $data_default:expr)*),*
+      ]
+      $(self_reference: $self_reference:ident)*
+      initial_state: $initial:ident $({
+        $(initial_action: $initial_action:block)*
+      })*
+      $(terminal_state: $terminal:ident $({
+        $(terminate_failure: $terminate_failure:block)*
+        $(terminate_success: $terminate_success:block)*
+      })*)*
+    }
+
+  ) => {
+
+    #[derive(Debug)]
+    pub struct $machine $(<$($type_var),+>)* where
+    $($(
+      $type_var : std::fmt::Debug,
+      $($($type_var : $type_constraint),+)*
+    ),+)*
+    {
+      state : State,
+      data  : Data $(<$($type_var),+>)*
+    }
+
+    #[derive(Clone,Debug,PartialEq)]
+    pub struct State {
+      id : StateId
+    }
+
+    #[derive(Clone,Debug,PartialEq)]
+    pub struct Event {
+      id : EventId
+    }
+
+    #[derive(Debug)]
+    pub struct Data $(<$($type_var),+>)* where
+    $($(
+      $type_var : std::fmt::Debug,
+      $($($type_var : $type_constraint),+)*
+    ),+)*
+    {
+      $(pub $data_name : $data_type),*
+    }
+
+    #[derive(Clone,Debug,PartialEq)]
+    pub enum StateId {
+      $($state),+
+    }
+
+    #[derive(Debug,PartialEq)]
+    pub enum Transition {
+      External (StateId, StateId)
+    }
+
+    #[derive(Clone,Debug,PartialEq)]
+    pub enum EventId {
+      $($event),+
+    }
+
+    impl $(<$($type_var),+>)* $machine $(<$($type_var),+>)* where
+    $($(
+      $type_var : std::fmt::Debug,
+      $($($type_var : $type_constraint),+)*
+    ),+)*
+    {
+      pub fn report() where $($($type_var : 'static),+)* {
+        let machine_name = stringify!($machine);
+        let machine_type = unsafe { std::intrinsics::type_name::<Self>() };
+        println!("{} report...", machine_name);
+        println!("size of {}: {}", machine_type, std::mem::size_of::<Self>());
+        println!("...{} report", machine_name);
+      }
+
+      pub fn new (data : Data $(<$($type_var),+>)*) -> Self {
+        Self {
+          state: State::initial(),
+          data
+        }
+      }
+
+      pub fn handle_event (&mut self, event : Event)
+        -> Result <(), macro_machines::HandleEventException>
+      {
+        trace!("{}::handle_event: {:?}", stringify!($machine), event);
+        match event.transition() {
+          Transition::External (source, target) => {
+            if self.state.id == source {
+              trace!("<<< Ok: {:?} => {:?}", source, target);
+              self.state.id = target;
+              {
+                $(let $self_reference = self;)*
+                match event.id {
+                  $(EventId::$event => $($action)*)+
+                }
+              }
+              Ok (())
+            } else {
+              trace!("<<< Err: current state ({:?}) != source state ({:?})",
+                self.state.id, source);
+              Err (macro_machines::HandleEventException::WrongState)
+            }
+          }
+        }
+      }
+
+      def_machine!{
+        @impl_fn_dotfile
+        machine $machine {
+          STATES    [ $(state $state {})+ ]
+          EVENTS    [ $(event $event <$source> => <$target> $($action)*)+ ]
+          EVENTS_TT [ $(event $event <$source> => <$target> $($action)*)+ ]
+          DATA      [ $($data_name : $data_type $(= $data_default)*),* ]
+          initial_state:  $initial
+          $(terminal_state: $terminal $({
+            $(terminate_failure: $terminate_failure)*
+          })*)*
+        }
+      }
+
+    } // end impl $machine
+
+    impl $(<$($type_var),+>)* Drop for $machine $(<$($type_var),+>)* where
+    $($(
+      $type_var : std::fmt::Debug,
+      $($($type_var : $type_constraint),+)*
+    ),+)*
+    {
+      fn drop (&mut self) {
+        trace!("{}::drop", stringify!($machine));
+        let _state_id = self.state.id.clone();
+        $(let $self_reference = self;)*
+        $(
+        if _state_id != StateId::$terminal {
+          trace!("<<< current state ({:?}) != terminal state ({:?})",
+            _state_id, StateId::$terminal);
+          $($($terminate_failure)*)*
+        } else {
+          $($($terminate_success)*)*
+        })*
+      }
+    }
+
+    impl State {
+      pub const fn initial() -> Self {
+        State {
+          id: StateId::initial()
+        }
+      }
+    }
+
+    impl StateId {
+      pub const fn initial() -> Self {
+        StateId::$initial
+      }
+      $(
+      pub const fn terminal() -> Self {
+        StateId::$terminal
+      }
+      )*
+    }
+
+    impl From <StateId> for State {
+      fn from (id : StateId) -> Self {
+        State {
+          id: id
+        }
+      }
+    }
+
+    impl EventId {
+      pub fn transition (&self) -> Transition {
+        match self {
+          $(
+          &EventId::$event =>
+            Transition::External (StateId::$source, StateId::$target)
+          ),+
+        }
+      }
+    }
+
+    impl Event {
+      pub fn transition (&self) -> Transition {
+        self.id.transition()
+      }
+    }
+
+    impl From <EventId> for Event {
+      fn from (id : EventId) -> Self {
+        Event {
+          id: id
+        }
+      }
+    }
+
+  };
+
+}

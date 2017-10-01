@@ -11,7 +11,7 @@ extern crate rs_utils;
 
 #[macro_use] extern crate macro_machines;
 
-def_machine!{
+def_machine_nodefault!{
   machine G <X> {
     STATES [
       state S {}
@@ -21,7 +21,8 @@ def_machine!{
       event A <S> => <T> {}
     ]
     DATA [
-      x : X
+      x  : X,
+      rx : std::sync::mpsc::Receiver <X> = std::sync::mpsc::channel().1
     ]
     initial_state: S
   }
@@ -56,7 +57,10 @@ fn main () {
   std::mem::drop (f);
 
   //let mut g = G::<std::sync::mpsc::Receiver <f64>>::initial();
-  let mut g = G::<f64>::initial();
+  let mut g = G::<f64>::new (Data::new (
+    Some (Default::default()),
+    None
+  ).unwrap());
   println!("g: {:?}", g);
 
   let e = EventId::A.into();
