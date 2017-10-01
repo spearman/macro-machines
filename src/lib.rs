@@ -14,7 +14,7 @@ pub enum HandleEventException {
 #[macro_export]
 macro_rules! def_machine {
   //
-  //  main implementation rule
+  //  main interface
   //
   ( machine $machine:ident
       $(<$(
@@ -44,7 +44,8 @@ macro_rules! def_machine {
 
   ) => {
 
-    def_machine_base!{
+    def_machine!{
+      @base
       machine $machine
         $(<$($type_var $(: { $($type_constraint),+ })*),+>)*
       {
@@ -99,6 +100,69 @@ macro_rules! def_machine {
           $($data_name: def_machine!(@impl_expr_default $($data_default)*)),*
         }
       }
+
+      /// Creation method that allows overriding defaults.
+      pub fn new ($($data_name : Option <$data_type>),*) -> Self {
+        Self {
+          $($data_name: $data_name.unwrap_or (
+            def_machine!(@impl_expr_default $($data_default)*))
+          ),*
+        }
+      }
+    }
+  };
+
+  //
+  //  alternate syntax
+  //
+  ( $machine:ident
+    $(<$(
+      $type_var:ident $(: { $($type_constraint:path),+ })*
+    ),+>)*
+    $(($(
+      $data_name:ident : $data_type:ty $(= $data_default:expr)*
+    ),*))*
+    $(where self = $self_reference:ident)*
+    {
+      STATES [
+        $(state $state:ident {})+
+      ]
+      EVENTS [
+        $(event $event:ident <$source:ident> => <$target:ident>
+          $($action:block)*
+        )+
+      ]
+      initial_state: $initial:ident $({
+        $(initial_action: $initial_action:block)*
+      })*
+      $(terminal_state: $terminal:ident $({
+        $(terminate_failure: $terminate_failure:block)*
+        $(terminate_success: $terminate_success:block)*
+      })*)*
+    }
+
+  ) => {
+
+    def_machine!{
+      machine $machine $(<$($type_var $(: { $($type_constraint),+ })*),+>)* {
+        STATES [
+          $(state $state {})+
+        ]
+        EVENTS [
+          $(event $event <$source> => <$target> $($action)*)+
+        ]
+        DATA [
+          $($($data_name : $data_type $(= $data_default)*),*)*
+        ]
+        $(self_reference: $self_reference)*
+        initial_state: $initial $({
+          $(initial_action: $initial_action)*
+        })*
+        $(terminal_state: $terminal $({
+          $(terminate_failure: $terminate_failure)*
+          $(terminate_success: $terminate_success)*
+        })*)*
+      }
     }
 
   };
@@ -127,7 +191,7 @@ macro_rules! def_machine {
   //  @impl_fn_dotfile
   //
   ( @impl_fn_dotfile
-    machine $machine:ident {
+    machine $machine:ident $(<$($type_var:ident),+>)* {
       STATES [
         $(state $state:ident {})+
       ]
@@ -160,7 +224,7 @@ macro_rules! def_machine {
       // begin subgraph
       s.push_str (def_machine!(
         @fn_dotfile_subgraph_begin
-        machine $machine {
+        machine $machine $(<$($type_var),+>)* {
           EVENTS [ $(event $event <$source> => <$target> $($action)*)+ ]
           DATA   [ $($data_name : $data_type $(= $data_default)*),* ]
         }
@@ -221,7 +285,7 @@ macro_rules! def_machine {
   //  @fn_dotfile_subgraph_begin
   //
   ( @fn_dotfile_subgraph_begin
-    machine $machine:ident {
+    machine $machine:ident $(<$($type_var:ident),+>)* {
       EVENTS [
         $(event $event:ident <$source:ident> => <$target:ident>
           $($action:block)*
@@ -233,12 +297,21 @@ macro_rules! def_machine {
     }
 
   ) => {{
+    use escapade::Escapable;
     let mut s = String::new();
     s.push_str (format!(
       "  subgraph cluster_{} {{\n", stringify!($machine)).as_str());
-    s.push_str (format!(
-      "    label=<{}<FONT FACE=\"Mono\"><BR/><BR/>",
-      stringify!($machine)).as_str());
+    let title_string = {
+      let mut s = String::new();
+      s.push_str (stringify!($machine));
+      $(
+      s.push_str (format!("<{}>",
+        stringify!($($type_var),+)).as_str());
+      )*
+      s
+    };
+    s.push_str (format!("    label=<{}<FONT FACE=\"Mono\"><BR/><BR/>",
+      title_string.escape().into_inner()).as_str());
 
     let mut _data_fields = std::vec::Vec::<String>::new();
     let mut _data_types = std::vec::Vec::<String>::new();
@@ -256,8 +329,10 @@ macro_rules! def_machine {
     // TODO: we are manually aligning the columns of the field name and field
     // type, is there a better way ? (record node, html table, format width?)
     if !_data_types.is_empty() {
+      s.push_str ("\n      ");
+
       let mut data_string = String::new();
-      let separator = ",<BR ALIGN=\"LEFT\"/>";
+      let separator = ",<BR ALIGN=\"LEFT\"/>\n      ";
 
       let longest_fieldname = _data_fields.iter().fold (0,
         |longest, ref fieldname| {
@@ -385,11 +460,14 @@ macro_rules! def_machine {
     // end internal state transitions
     */
 
-    s.push_str ("<BR ALIGN=\"LEFT\"/></FONT><BR/>>\n");
-    s.push_str (
-      "    shape=record\n    \
-           style=rounded\n    \
-           fontname=\"Sans Bold Italic\"\n");
+    s.push_str ("<BR ALIGN=\"LEFT\"/>");
+    if !_data_types.is_empty() {
+      s.push_str ("\n      ");
+    }
+    s.push_str ( "</FONT><BR/>>\n    \
+      shape=record\n    \
+      style=rounded\n    \
+      fontname=\"Sans Bold Italic\"\n");
     s
   }}; // end @fn_dotfile_subgraph_begin
 
@@ -798,204 +876,10 @@ macro_rules! def_machine {
   }};
 
   //
-  //  alternate syntax
+  //  base implementation rule
   //
-  ( $machine:ident
-    $(<$(
-      $type_var:ident $(: { $($type_constraint:path),+ })*
-    ),+>)*
-    $(($(
-      $data_name:ident : $data_type:ty $(= $data_default:expr)*
-    ),*))*
-    $(where self = $self_reference:ident)*
-    {
-      STATES [
-        $(state $state:ident {})+
-      ]
-      EVENTS [
-        $(event $event:ident <$source:ident> => <$target:ident>
-          $($action:block)*
-        )+
-      ]
-      initial_state: $initial:ident $({
-        $(initial_action: $initial_action:block)*
-      })*
-      $(terminal_state: $terminal:ident $({
-        $(terminate_failure: $terminate_failure:block)*
-        $(terminate_success: $terminate_success:block)*
-      })*)*
-    }
-
-  ) => {
-
-    def_machine!{
-      machine $machine $(<$($type_var $(: { $($type_constraint),+ })*),+>)* {
-        STATES [
-          $(state $state {})+
-        ]
-        EVENTS [
-          $(event $event <$source> => <$target> $($action)*)+
-        ]
-        DATA [
-          $($($data_name : $data_type $(= $data_default)*),*)*
-        ]
-        $(self_reference: $self_reference)*
-        initial_state: $initial $({
-          $(initial_action: $initial_action)*
-        })*
-        $(terminal_state: $terminal $({
-          $(terminate_failure: $terminate_failure)*
-          $(terminate_success: $terminate_success)*
-        })*)*
-      }
-    }
-  };
-
-} // end def_machine!
-
-#[macro_export]
-macro_rules! def_machine_nodefault {
-  //
-  //  main implementation rule
-  //
-  ( machine $machine:ident
-      $(<$(
-        $type_var:ident $(: { $($type_constraint:path),+ })*
-      ),+>)*
-    {
-      STATES [
-        $(state $state:ident {})+
-      ]
-      EVENTS [
-        $(event $event:ident <$source:ident> => <$target:ident>
-          $($action:block)*
-        )+
-      ]
-      DATA [
-        $($data_name:ident : $data_type:ty $(= $data_default:expr)*),*
-      ]
-      $(self_reference: $self_reference:ident)*
-      initial_state: $initial:ident $({
-        $(initial_action: $initial_action:block)*
-      })*
-      $(terminal_state: $terminal:ident $({
-        $(terminate_failure: $terminate_failure:block)*
-        $(terminate_success: $terminate_success:block)*
-      })*)*
-    }
-
-  ) => {
-
-    def_machine_base!{
-      machine $machine
-        $(<$($type_var $(: { $($type_constraint),+ })*),+>)*
-      {
-        STATES [
-          $(state $state {})+
-        ]
-        EVENTS [
-          $(event $event <$source> => <$target> $($action)*)+
-        ]
-        DATA [
-          $($data_name : $data_type $(= $data_default)*),*
-        ]
-        $(self_reference: $self_reference)*
-        initial_state: $initial $({
-          $(initial_action: $initial_action)*
-        })*
-        $(terminal_state: $terminal $({
-          $(terminate_failure: $terminate_failure)*
-          $(terminate_success: $terminate_success)*
-        })*)*
-      }
-    }
-
-    impl $(<$($type_var),+>)* Data $(<$($type_var),+>)* where
-    $($(
-      $type_var : std::fmt::Debug,
-      $($($type_var : $type_constraint),+)*
-    ),+)*
-    {
-      // TODO: indicate which arguments are missing in case of failure
-      pub fn new ($($data_name : Option <$data_type>),*) -> Option <Self> {
-        Some (Self {
-          $($data_name: {
-            if let Some ($data_name) = $data_name {
-              $data_name
-            } else {
-              def_machine!(@impl_expr_nodefault $($data_default)*)
-            }
-          }),*
-        })
-      }
-    }
-
-  };
-
-  //
-  //  alternate syntax
-  //
-  ( $machine:ident
-    $(<$(
-      $type_var:ident $(: { $($type_constraint:path),+ })*
-    ),+>)*
-    $(($(
-      $data_name:ident : $data_type:ty $(= $data_default:expr)*
-    ),*))*
-    $(where self = $self_reference:ident)*
-    {
-      STATES [
-        $(state $state:ident {})+
-      ]
-      EVENTS [
-        $(event $event:ident <$source:ident> => <$target:ident>
-          $($action:block)*
-        )+
-      ]
-      initial_state: $initial:ident $({
-        $(initial_action: $initial_action:block)*
-      })*
-      $(terminal_state: $terminal:ident $({
-        $(terminate_failure: $terminate_failure:block)*
-        $(terminate_success: $terminate_success:block)*
-      })*)*
-    }
-
-  ) => {
-
-    def_machine_nodefault!{
-      machine $machine $(<$($type_var $(: { $($type_constraint),+ })*),+>)* {
-        STATES [
-          $(state $state {})+
-        ]
-        EVENTS [
-          $(event $event <$source> => <$target> $($action)*)+
-        ]
-        DATA [
-          $($($data_name : $data_type $(= $data_default)*),*)*
-        ]
-        $(self_reference: $self_reference)*
-        initial_state: $initial $({
-          $(initial_action: $initial_action)*
-        })*
-        $(terminal_state: $terminal $({
-          $(terminate_failure: $terminate_failure)*
-          $(terminate_success: $terminate_success)*
-        })*)*
-      }
-    }
-
-  };
-
-}
-
-#[allow(unused_macros)]
-#[macro_export]
-macro_rules! def_machine_base {
-  //
-  //  main implementation rule
-  //
-  ( machine $machine:ident
+  ( @base
+    machine $machine:ident
       $(<$(
         $type_var:ident $(: { $($type_constraint:path),+ })*
       ),+>)*
@@ -1117,7 +1001,7 @@ macro_rules! def_machine_base {
 
       def_machine!{
         @impl_fn_dotfile
-        machine $machine {
+        machine $machine $(<$($type_var),+>)* {
           STATES    [ $(state $state {})+ ]
           EVENTS    [ $(event $event <$source> => <$target> $($action)*)+ ]
           EVENTS_TT [ $(event $event <$source> => <$target> $($action)*)+ ]
@@ -1205,5 +1089,144 @@ macro_rules! def_machine_base {
     }
 
   };
+} // end def_machine!
 
-}
+/// State machine that requires runtime initialization.
+#[macro_export]
+macro_rules! def_machine_nodefault {
+  //
+  //  main implementation rule
+  //
+  ( machine $machine:ident
+      $(<$(
+        $type_var:ident $(: { $($type_constraint:path),+ })*
+      ),+>)*
+    {
+      STATES [
+        $(state $state:ident {})+
+      ]
+      EVENTS [
+        $(event $event:ident <$source:ident> => <$target:ident>
+          $($action:block)*
+        )+
+      ]
+      DATA [
+        $($data_name:ident : $data_type:ty $(= $data_default:expr)*),*
+      ]
+      $(self_reference: $self_reference:ident)*
+      initial_state: $initial:ident $({
+        $(initial_action: $initial_action:block)*
+      })*
+      $(terminal_state: $terminal:ident $({
+        $(terminate_failure: $terminate_failure:block)*
+        $(terminate_success: $terminate_success:block)*
+      })*)*
+    }
+
+  ) => {
+
+    def_machine!{
+      @base
+      machine $machine
+        $(<$($type_var $(: { $($type_constraint),+ })*),+>)*
+      {
+        STATES [
+          $(state $state {})+
+        ]
+        EVENTS [
+          $(event $event <$source> => <$target> $($action)*)+
+        ]
+        DATA [
+          $($data_name : $data_type $(= $data_default)*),*
+        ]
+        $(self_reference: $self_reference)*
+        initial_state: $initial $({
+          $(initial_action: $initial_action)*
+        })*
+        $(terminal_state: $terminal $({
+          $(terminate_failure: $terminate_failure)*
+          $(terminate_success: $terminate_success)*
+        })*)*
+      }
+    }
+
+    impl $(<$($type_var),+>)* Data $(<$($type_var),+>)* where
+    $($(
+      $type_var : std::fmt::Debug,
+      $($($type_var : $type_constraint),+)*
+    ),+)*
+    {
+      /// Creation method that allows overriding defaults. If a field does not
+      /// have a default specified it is a required argument.
+      // TODO: indicate which arguments are missing in case of failure
+      // TODO: make required arguments not Option types
+      pub fn new ($($data_name : Option <$data_type>),*) -> Option <Self> {
+        Some (Self {
+          $($data_name: {
+            if let Some ($data_name) = $data_name {
+              $data_name
+            } else {
+              def_machine!(@impl_expr_nodefault $($data_default)*)
+            }
+          }),*
+        })
+      }
+    }
+  };
+
+  //
+  //  alternate syntax
+  //
+  ( $machine:ident
+    $(<$(
+      $type_var:ident $(: { $($type_constraint:path),+ })*
+    ),+>)*
+    $(($(
+      $data_name:ident : $data_type:ty $(= $data_default:expr)*
+    ),*))*
+    $(where self = $self_reference:ident)*
+    {
+      STATES [
+        $(state $state:ident {})+
+      ]
+      EVENTS [
+        $(event $event:ident <$source:ident> => <$target:ident>
+          $($action:block)*
+        )+
+      ]
+      initial_state: $initial:ident $({
+        $(initial_action: $initial_action:block)*
+      })*
+      $(terminal_state: $terminal:ident $({
+        $(terminate_failure: $terminate_failure:block)*
+        $(terminate_success: $terminate_success:block)*
+      })*)*
+    }
+
+  ) => {
+
+    def_machine_nodefault!{
+      machine $machine $(<$($type_var $(: { $($type_constraint),+ })*),+>)* {
+        STATES [
+          $(state $state {})+
+        ]
+        EVENTS [
+          $(event $event <$source> => <$target> $($action)*)+
+        ]
+        DATA [
+          $($($data_name : $data_type $(= $data_default)*),*)*
+        ]
+        $(self_reference: $self_reference)*
+        initial_state: $initial $({
+          $(initial_action: $initial_action)*
+        })*
+        $(terminal_state: $terminal $({
+          $(terminate_failure: $terminate_failure)*
+          $(terminate_success: $terminate_success)*
+        })*)*
+      }
+    }
+
+  };
+
+} // end def_machine_nodefault!
