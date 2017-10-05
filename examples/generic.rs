@@ -14,13 +14,13 @@ extern crate rs_utils;
 def_machine_nodefault!{
   machine G <X> {
     STATES [
-      state S {}
-      state T {}
+      state S ()
+      state T ()
     ]
     EVENTS [
-      event A <S> => <T> {}
+      event A <S> => <T>
     ]
-    DATA [
+    EXTENDED [
       x  : X,
       rx : std::sync::mpsc::Receiver <X> = std::sync::mpsc::channel().1
     ]
@@ -57,7 +57,7 @@ fn main () {
   std::mem::drop (f);
 
   //let mut g = G::<std::sync::mpsc::Receiver <f64>>::initial();
-  let mut g = G::<f64>::new (Data::new (
+  let mut g = G::<f64>::new (ExtendedState::new (
     Some (Default::default()),
     None
   ).unwrap());

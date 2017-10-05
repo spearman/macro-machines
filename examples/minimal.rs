@@ -14,13 +14,13 @@ extern crate rs_utils;
 def_machine!{
   machine M {
     STATES [
-      state S {}
-      state T {}
+      state S ()
+      state T ()
     ]
     EVENTS [
-      event A <S> => <T> {}
+      event A <S> => <T>
     ]
-    DATA []
+    EXTENDED []
     initial_state: S
   }
 }

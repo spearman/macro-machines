@@ -1,6 +1,6 @@
 [package]
 name = "macro-machines"
-version = "0.0.3"
+version = "0.0.4"
 authors = ["Shane Pearman <spearman@github.com>"]
 
 # remote dependencies

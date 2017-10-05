@@ -5,8 +5,8 @@ pub enum HandleEventException {
 
 /// State machines with a default `initial` state.
 ///
-/// For each extended 'data' field, either the type must implement `Default`,
-/// or else a default expression is provided following `=`.
+/// For each extended state field, either the type must implement `Default`, or
+/// else a default expression is provided following `=`.
 ///
 /// For a state machine that requires runtime initialization, see
 /// `def_machine_nodefault!`.
@@ -22,17 +22,18 @@ macro_rules! def_machine {
       ),+>)*
     {
       STATES [
-        $(state $state:ident {})+
+        $(state $state:ident (
+          $($data_name:ident : $data_type:ty $(= $data_default:expr)*),*
+        ))+
       ]
       EVENTS [
-        $(event $event:ident <$source:ident> => <$target:ident>
-          $($action:block)*
+        $(event $event:ident <$source:ident> $(=> <$target:ident>)*
+          $({ $($state_data:ident),* } => $action:block)*
         )+
       ]
-      DATA [
-        $($data_name:ident : $data_type:ty $(= $data_default:expr)*),*
+      EXTENDED [
+        $($ext_name:ident : $ext_type:ty $(= $ext_default:expr)*),*
       ]
-      $(self_reference: $self_reference:ident)*
       initial_state: $initial:ident $({
         $(initial_action: $initial_action:block)*
       })*
@@ -50,15 +51,16 @@ macro_rules! def_machine {
         $(<$($type_var $(: { $($type_constraint),+ })*),+>)*
       {
         STATES [
-          $(state $state {})+
+          $(state $state ($($data_name : $data_type $(= $data_default)*),*))+
         ]
         EVENTS [
-          $(event $event <$source> => <$target> $($action)*)+
+          $(event $event <$source> $(=> <$target>)*
+            $({$($state_data),*} => $action)*
+          )+
         ]
-        DATA [
-          $($data_name : $data_type $(= $data_default)*),*
+        EXTENDED [
+          $($ext_name : $ext_type $(= $ext_default)*),*
         ]
-        $(self_reference: $self_reference)*
         initial_state: $initial $({
           $(initial_action: $initial_action)*
         })*
@@ -78,18 +80,37 @@ macro_rules! def_machine {
       pub fn initial() -> Self {
         trace!("{}::initial", stringify!($machine));
         let mut _new = Self {
-          state: State::initial(),
-          data:  Data::initial()
+          state:          State::initial(),
+          extended_state: ExtendedState::initial()
         };
-        {
-          $(let $self_reference = &mut _new;)*
-          $($($initial_action)*)*
+        #[allow(unused_variables)]
+        match &mut _new.extended_state {
+          &mut ExtendedState { $(ref mut $ext_name,)*.. } => {
+            $($($initial_action)*)*
+          }
         }
         _new
       }
+
+      def_machine!{
+        @impl_fn_dotfile
+        machine $machine $(<$($type_var),+>)* {
+          STATES    [
+            $(state $state ($($data_name : $data_type $(= $data_default)*),*))+
+          ]
+          EVENTS    [ $(event $event <$source> $(=> <$target>)* $($action)*)+ ]
+          EVENTS_TT [ $(event $event <$source> $(=> <$target>)* $($action)*)+ ]
+          EXTENDED      [ $($ext_name : $ext_type $(= $ext_default)*),* ]
+          initial_state:  $initial
+          $(terminal_state: $terminal $({
+            $(terminate_failure: $terminate_failure)*
+          })*)*
+        }
+      }
+
     }
 
-    impl $(<$($type_var),+>)* Data $(<$($type_var),+>)* where
+    impl $(<$($type_var),+>)* ExtendedState $(<$($type_var),+>)* where
     $($(
       $type_var : std::fmt::Debug,
       $($($type_var : $type_constraint),+)*
@@ -97,15 +118,15 @@ macro_rules! def_machine {
     {
       pub fn initial() -> Self {
         Self {
-          $($data_name: def_machine!(@impl_expr_default $($data_default)*)),*
+          $($ext_name: def_machine!(@expr_default $($ext_default)*)),*
         }
       }
 
       /// Creation method that allows overriding defaults.
-      pub fn new ($($data_name : Option <$data_type>),*) -> Self {
+      pub fn new ($($ext_name : Option <$ext_type>),*) -> Self {
         Self {
-          $($data_name: $data_name.unwrap_or (
-            def_machine!(@impl_expr_default $($data_default)*))
+          $($ext_name: $ext_name.unwrap_or (
+            def_machine!(@expr_default $($ext_default)*))
           ),*
         }
       }
@@ -120,16 +141,17 @@ macro_rules! def_machine {
       $type_var:ident $(: { $($type_constraint:path),+ })*
     ),+>)*
     $(($(
-      $data_name:ident : $data_type:ty $(= $data_default:expr)*
+      $ext_name:ident : $ext_type:ty $(= $ext_default:expr)*
     ),*))*
-    $(where self = $self_reference:ident)*
     {
       STATES [
-        $(state $state:ident {})+
+        $(state $state:ident (
+          $($data_name:ident : $data_type:ty $(= $data_default:expr)*),*
+        ))+
       ]
       EVENTS [
-        $(event $event:ident <$source:ident> => <$target:ident>
-          $($action:block)*
+        $(event $event:ident <$source:ident> $(=> <$target:ident>)*
+          $({ $($state_data:ident),* } => $action:block)*
         )+
       ]
       initial_state: $initial:ident $({
@@ -146,15 +168,16 @@ macro_rules! def_machine {
     def_machine!{
       machine $machine $(<$($type_var $(: { $($type_constraint),+ })*),+>)* {
         STATES [
-          $(state $state {})+
+          $(state $state ($($data_name : $data_type $(= $data_default)*),*))+
         ]
         EVENTS [
-          $(event $event <$source> => <$target> $($action)*)+
+          $(event $event <$source> $(=> <$target>)*
+            $({$($state_data),*} => $action)*
+          )+
         ]
-        DATA [
-          $($($data_name : $data_type $(= $data_default)*),*)*
+        EXTENDED [
+          $($($ext_name : $ext_type $(= $ext_default)*),*)*
         ]
-        $(self_reference: $self_reference)*
         initial_state: $initial $({
           $(initial_action: $initial_action)*
         })*
@@ -168,24 +191,165 @@ macro_rules! def_machine {
   };
 
   //
-  //  @impl_expr_default: override default
+  //  @impl_fn_handle_event
   //
-  ( @impl_expr_default $default:expr ) => { $default };
+  ( @impl_fn_handle_event
+    machine $machine:ident {
+      STATES [
+        $(state $state:ident (
+          $($data_name:ident : $data_type:ty $(= $data_default:expr)*),*
+        ))+
+      ]
+      EVENTS [
+        $(event $event:ident <$source:ident> $(=> <$target:ident>)*
+          $({ $($state_data:ident),* } => $action:block)*
+        )+
+      ]
+      EXTENDED [
+        $($ext_name:ident : $ext_type:ty $(= $ext_default:expr)*),*
+      ]
+    }
+
+  ) => {
+
+    pub fn handle_event (&mut self, event : Event)
+      -> Result <(), macro_machines::HandleEventException>
+    {
+      trace!("{}::handle_event: {:?}", stringify!($machine), event);
+      // if only one kind of transition exists the following match expression
+      // will detect the other branch as "unreachable_code"
+      #[allow(unreachable_code)]
+      match event.transition() {
+        Transition::Internal (state_id) => {
+          if self.state.id == state_id {
+            // bring extended state variables into scope
+            #[allow(unused_variables)]
+            match &mut self.extended_state {
+              &mut ExtendedState { $(ref mut $ext_name,)*.. } => {
+                // map each event to an action
+                match event.id {
+                  $(EventId::$event => {
+                    // bring local state variables into scope
+                    match &mut self.state.data {
+                      &mut StateData::$source {$($(ref mut $state_data,)*)*..}
+                        => {
+                          // only expands internal actions, unreachable otherwise
+                          def_machine!{
+                            @event_action_internal
+                            event $event <$source> $(=> <$target>)* $($action)*
+                          }
+                        }
+                      _ => unreachable!("current state should match event source")
+                    }
+                  })+
+                }
+              }
+            }
+            Ok (())
+          } else {
+            trace!("<<< Err: internal transition: \
+              current state ({:?}) != state ({:?})",
+                self.state.id, state_id);
+            Err (macro_machines::HandleEventException::WrongState)
+          }
+        }
+        Transition::External (source_id, target_id) => {
+          if self.state.id == source_id {
+            trace!("<<< Ok: {:?} => {:?}", source_id, target_id);
+            // bring extended state variables into scope
+            #[allow(unused_variables)]
+            match &mut self.extended_state {
+              &mut ExtendedState { $(ref mut $ext_name,)*.. } => {
+                match event.id {
+                  $(EventId::$event => {
+                    // only expands external actions, unreachable otherwise
+                    def_machine!{
+                      @event_action_external
+                      event $event <$source> $(=> <$target>)* $($action)*
+                    }
+                  })+
+                }
+              }
+            }
+            self.state = target_id.into();
+            Ok (())
+          } else {
+            trace!("<<< Err: external transition: \
+              current state ({:?}) != source state ({:?})",
+                self.state.id, source_id);
+            Err (macro_machines::HandleEventException::WrongState)
+          }
+        }
+      }
+    }
+
+  };  // end @impl_fn_handle_event
 
   //
-  //  @impl_expr_default: use default
+  //  @event_action_external
   //
-  ( @impl_expr_default ) => { Default::default() };
+  ( @event_action_external
+    event $event:ident <$source:ident> => <$target:ident> $($action:block)*
+  ) => {
+    $($action)*
+  };
 
   //
-  //  @impl_expr_nodefault: override default
+  //  @event_action_external: not an external event
   //
-  ( @impl_expr_nodefault $default:expr ) => { $default };
+  ( @event_action_external
+    event $event:ident <$source:ident> $($action:block)*
+  ) => { unreachable!("not an external event") };
 
   //
-  //  @impl_expr_nodefault: no default
+  //  @event_action_internal
   //
-  ( @impl_expr_nodefault ) => { return None };
+  ( @event_action_internal
+    event $event:ident <$source:ident> $($action:block)*
+  ) => {
+    $($action)*
+  };
+
+  //
+  //  @event_action_internal: not an internal event
+  //
+  ( @event_action_internal
+    event $event:ident <$source:ident> => <$target:ident> $($action:block)*
+  ) => { unreachable!("not an internal event") };
+
+  //
+  //  @event_transition: external
+  //
+  ( @event_transition <$source:ident> => <$target:ident> ) => {
+    Transition::External (StateId::$source, StateId::$target)
+  };
+
+  //
+  //  @event_transition: internal
+  //
+  ( @event_transition <$source:ident> ) => {
+    Transition::Internal (StateId::$source)
+  };
+
+  //
+  //  @expr_default: override default
+  //
+  ( @expr_default $default:expr ) => { $default };
+
+  //
+  //  @expr_default: use default
+  //
+  ( @expr_default ) => { Default::default() };
+
+  //
+  //  @expr_option: Some
+  //
+  ( @expr_option $default:expr ) => { Some ($default) };
+
+  //
+  //  @expr_option: None
+  //
+  ( @expr_option ) => { None };
 
   //
   //  @impl_fn_dotfile
@@ -193,18 +357,19 @@ macro_rules! def_machine {
   ( @impl_fn_dotfile
     machine $machine:ident $(<$($type_var:ident),+>)* {
       STATES [
-        $(state $state:ident {})+
+        $(state $state:ident (
+          $($data_name:ident : $data_type:ty $(= $data_default:expr)*),*
+        ))+
       ]
       EVENTS [
-        $(event $event:ident <$source:ident> => <$target:ident>
+        $(event $event:ident <$source:ident> $(=> <$target:ident>)*
           $($action:block)*
         )+
       ]
       EVENTS_TT $events_tt:tt
-      DATA [
-        $($data_name:ident : $data_type:ty $(= $data_default:expr)*),*
+      EXTENDED [
+        $($ext_name:ident : $ext_type:ty $(= $ext_default:expr)*),*
       ]
-      $(self_reference: $self_reference:ident)*
       initial_state: $initial:ident $({
         $(initial_action: $initial_action:block)*
       })*
@@ -225,8 +390,8 @@ macro_rules! def_machine {
       s.push_str (def_machine!(
         @fn_dotfile_subgraph_begin
         machine $machine $(<$($type_var),+>)* {
-          EVENTS [ $(event $event <$source> => <$target> $($action)*)+ ]
-          DATA   [ $($data_name : $data_type $(= $data_default)*),* ]
+          EVENTS [ $(event $event <$source> $(=> <$target>)* $($action)*)+ ]
+          EXTENDED   [ $($ext_name : $ext_type $(= $ext_default)*),* ]
         }
       ).as_str());
 
@@ -235,7 +400,7 @@ macro_rules! def_machine {
       $(
       s.push_str (def_machine!(
         @fn_dotfile_node
-        state $state {}
+        state $state ($($data_name : $data_type $(= $data_default)*),*)
         EVENTS $events_tt
       ).as_str());
       )+
@@ -247,7 +412,7 @@ macro_rules! def_machine {
       $(
       s.push_str (def_machine!(
         @fn_dotfile_transition
-        event $event <$source> => <$target> $($action)*
+        event $event <$source> $(=> <$target>)* $($action)*
       ).as_str());
       )+
 
@@ -266,6 +431,85 @@ macro_rules! def_machine {
 
   };  // end @impl_fn_dotfile
 
+  //
+  //  @impl_fn_dotfile_nodefault
+  //
+  ( @impl_fn_dotfile_nodefault
+    machine $machine:ident $(<$($type_var:ident),+>)* {
+      STATES [
+        $(state $state:ident (
+          $($data_name:ident : $data_type:ty $(= $data_default:expr)*),*
+        ))+
+      ]
+      EVENTS [
+        $(event $event:ident <$source:ident> $(=> <$target:ident>)*
+          $($action:block)*
+        )+
+      ]
+      EVENTS_TT $events_tt:tt
+      EXTENDED [
+        $($ext_name:ident : $ext_type:ty $(= $ext_default:expr)*),*
+      ]
+      initial_state: $initial:ident $({
+        $(initial_action: $initial_action:block)*
+      })*
+      $(terminal_state: $terminal:ident $({
+        $(terminate_failure: $terminate_failure:block)*
+        $(terminate_success: $terminate_success:block)*
+      })*)*
+    }
+
+  ) => {
+
+    pub fn dotfile() -> String {
+      let mut s = String::new();
+      // begin graph
+      s.push_str (def_machine!(@fn_dotfile_begin).as_str());
+
+      // begin subgraph
+      s.push_str (def_machine!(
+        @fn_dotfile_subgraph_begin_nodefault
+        machine $machine $(<$($type_var),+>)* {
+          EVENTS [ $(event $event <$source> $(=> <$target>)* $($action)*)+ ]
+          EXTENDED   [ $($ext_name : $ext_type $(= $ext_default)*),* ]
+        }
+      ).as_str());
+
+      // nodes
+      s.push_str (def_machine!(@fn_dotfile_node_initial).as_str());
+      $(
+      s.push_str (def_machine!(
+        @fn_dotfile_node
+        state $state ($($data_name : $data_type $(= $data_default)*),*)
+        EVENTS $events_tt
+      ).as_str());
+      )+
+
+      // transitions
+      s.push_str (
+        def_machine!(@fn_dotfile_transition_initial $initial
+      ).as_str());
+      $(
+      s.push_str (def_machine!(
+        @fn_dotfile_transition
+        event $event <$source> $(=> <$target>)* $($action)*
+      ).as_str());
+      )+
+
+      // terminal
+      $(
+      s.push_str (def_machine!(@fn_dotfile_node_terminal).as_str());
+      s.push_str (def_machine!(
+        @fn_dotfile_transition_terminal $terminal
+      ).as_str());
+      )*
+
+      //  end graph
+      s.push_str (def_machine!(@fn_dotfile_end).as_str());
+      s
+    } // end fn dotfile
+
+  };  // end @impl_fn_dotfile
 
   //
   //  @fn_dotfile_begin
@@ -287,12 +531,12 @@ macro_rules! def_machine {
   ( @fn_dotfile_subgraph_begin
     machine $machine:ident $(<$($type_var:ident),+>)* {
       EVENTS [
-        $(event $event:ident <$source:ident> => <$target:ident>
+        $(event $event:ident <$source:ident> $(=> <$target:ident>)*
           $($action:block)*
         )+
       ]
-      DATA [
-        $($data_name:ident : $data_type:ty $(= $data_default:expr)*),*
+      EXTENDED [
+        $($ext_name:ident : $ext_type:ty $(= $ext_default:expr)*),*
       ]
     }
 
@@ -310,31 +554,44 @@ macro_rules! def_machine {
       )*
       s
     };
-    s.push_str (format!("    label=<{}<FONT FACE=\"Mono\"><BR/><BR/>",
-      title_string.escape().into_inner()).as_str());
+    s.push_str (
+      format!("    label=<{}", title_string.escape().into_inner()).as_str());
 
-    let mut _data_fields = std::vec::Vec::<String>::new();
-    let mut _data_types = std::vec::Vec::<String>::new();
+    let mut _mono_font         = false;
+    let mut _extended_fields   = Vec::<String>::new();
+    let mut _extended_types    = Vec::<String>::new();
+    let mut _extended_defaults = Vec::<String>::new();
 
+    // NOTE: within the mono font block leading whitespace in the source
+    // is counted as part of the layout so we don't indent these lines
     $({
-      _data_fields.push (stringify!($data_name).to_string());
-      _data_types.push (stringify!($data_type).to_string());
+      if !_mono_font {
+        s.push_str ("<FONT FACE=\"Mono\"><BR/><BR/>\n");
+        _mono_font = true;
+      }
+      _extended_fields.push (stringify!($ext_name).to_string());
+      _extended_types.push (stringify!($ext_type).to_string());
+      let default_val : $ext_type
+        = def_machine!(@expr_default $($ext_default)*);
+      _extended_defaults.push (format!("{:?}", default_val));
     })*
 
-    debug_assert_eq!(_data_fields.len(), _data_types.len());
+    debug_assert_eq!(_extended_fields.len(), _extended_types.len());
+    debug_assert_eq!(_extended_types.len(), _extended_defaults.len());
 
     //
-    //  for each data field, print a line
+    //  for each extended state field, print a line
     //
     // TODO: we are manually aligning the columns of the field name and field
     // type, is there a better way ? (record node, html table, format width?)
-    if !_data_types.is_empty() {
-      s.push_str ("\n      ");
+    if !_extended_types.is_empty() {
+      debug_assert!(_mono_font);
+      debug_assert!(!_extended_defaults.is_empty());
 
-      let mut data_string = String::new();
-      let separator = ",<BR ALIGN=\"LEFT\"/>\n      ";
+      let mut extended_string = String::new();
+      let separator = ",<BR ALIGN=\"LEFT\"/>\n";
 
-      let longest_fieldname = _data_fields.iter().fold (0,
+      let longest_fieldname = _extended_fields.iter().fold (0,
         |longest, ref fieldname| {
           let len = fieldname.len();
           if longest < len {
@@ -345,8 +602,7 @@ macro_rules! def_machine {
         }
       );
 
-      /*
-      let longest_typename = data_types.iter().fold (0,
+      let longest_typename = _extended_types.iter().fold (0,
         |longest, ref typename| {
           let len = typename.len();
           if longest < len {
@@ -356,42 +612,44 @@ macro_rules! def_machine {
           }
         }
       );
-      */
 
-      for (i,f) in _data_fields.iter().enumerate() {
+      for (i,f) in _extended_fields.iter().enumerate() {
         use escapade::Escapable;
 
-        let spacer1 : String = std::iter::repeat (' ').take(
-          longest_fieldname - f.len()
-        ).collect();
+        let spacer1 : String = std::iter::repeat (' ')
+          .take(longest_fieldname - f.len())
+          .collect();
+        let spacer2 : String = std::iter::repeat (' ')
+          .take (longest_typename - _extended_types[i].len())
+          .collect();
 
-        data_string.push_str (
-          format!("{}{} : {}",
-            f, spacer1, _data_types[i])
+        extended_string.push_str (
+          format!("{}{} : {}{} = {}",
+            f, spacer1, _extended_types[i], spacer2, _extended_defaults[i])
           .escape().into_inner().as_str()
         );
-        data_string.push_str (format!("{}", separator).as_str());
+        extended_string.push_str (format!("{}", separator).as_str());
       }
 
-      let len = data_string.len();
-      data_string.truncate (len - separator.len());
-      s.push_str (format!("{}", data_string).as_str());
+      let len = extended_string.len();
+      extended_string.truncate (len - separator.len());
+      s.push_str (format!("{}", extended_string).as_str());
     }
 
     // TODO
     /*
     // internal state transitions
-    let mut _data_once = false;
+    let mut _extended_once = false;
     $({
       match EventId::$event.transition() {
 
         Transition::Internal => {
-          if !_data_once {
+          if !_extended_once {
             s.push_str (
               "<BR ALIGN=\"LEFT\"/></FONT>\
                <BR ALIGN=\"LEFT\"/>\
                <FONT FACE=\"Sans Italic\">");
-            _data_once = true;
+            _extended_once = true;
           } else {
             s.push_str ("<BR ALIGN=\"LEFT\"/></FONT>");
             s.push_str ("<BR ALIGN=\"LEFT\"/>\
@@ -404,7 +662,7 @@ macro_rules! def_machine {
           {
             use escapade::Escapable;
             let default_val : $param_type = def_machine!{
-              @impl_expr_default $($param_default)*
+              @expr_default $($param_default)*
             };
             s.push_str (
               format!("{} : {} = {}, ",
@@ -461,13 +719,237 @@ macro_rules! def_machine {
     */
 
     s.push_str ("<BR ALIGN=\"LEFT\"/>");
-    if !_data_types.is_empty() {
+    if !_extended_types.is_empty() {
       s.push_str ("\n      ");
     }
-    s.push_str ( "</FONT><BR/>>\n    \
-      shape=record\n    \
-      style=rounded\n    \
-      fontname=\"Sans Bold Italic\"\n");
+    if _mono_font {
+      s.push_str ("</FONT><BR/>");
+    }
+    s.push_str (">\
+      \n    shape=record\
+      \n    style=rounded\
+      \n    fontname=\"Sans Bold Italic\"\n");
+    s
+  }}; // end @fn_dotfile_subgraph_begin
+
+  //
+  //  @fn_dotfile_subgraph_begin_nodefault
+  //
+  /// Expressions without a provided default are replaced with an empty string
+  /// instead of a `Default::default()` instance.
+  ( @fn_dotfile_subgraph_begin_nodefault
+    machine $machine:ident $(<$($type_var:ident),+>)* {
+      EVENTS [
+        $(event $event:ident <$source:ident> $(=> <$target:ident>)*
+          $($action:block)*
+        )+
+      ]
+      EXTENDED [
+        $($ext_name:ident : $ext_type:ty $(= $ext_default:expr)*),*
+      ]
+    }
+
+  ) => {{
+    use escapade::Escapable;
+    let mut s = String::new();
+    s.push_str (format!(
+      "  subgraph cluster_{} {{\n", stringify!($machine)).as_str());
+    let title_string = {
+      let mut s = String::new();
+      s.push_str (stringify!($machine));
+      $(
+      s.push_str (format!("<{}>",
+        stringify!($($type_var),+)).as_str());
+      )*
+      s
+    };
+    s.push_str (
+      format!("    label=<{}", title_string.escape().into_inner()).as_str());
+
+    let mut _mono_font         = false;
+    let mut _extended_fields   = Vec::<String>::new();
+    let mut _extended_types    = Vec::<String>::new();
+    let mut _extended_defaults = Vec::<String>::new();
+
+    // NOTE: within the mono font block leading whitespace in the source
+    // is counted as part of the layout so we don't indent these lines
+    $({
+      if !_mono_font {
+        s.push_str ("<FONT FACE=\"Mono\"><BR/><BR/>\n");
+        _mono_font = true;
+      }
+      _extended_fields.push (stringify!($ext_name).to_string());
+      _extended_types.push (stringify!($ext_type).to_string());
+      let default_val : Option <$ext_type>
+        = def_machine!(@expr_option $($ext_default)*);
+      if let Some (default_val) = default_val {
+        _extended_defaults.push (format!("{:?}", default_val));
+      } else {
+        _extended_defaults.push (String::new());
+      }
+    })*
+
+    debug_assert_eq!(_extended_fields.len(), _extended_types.len());
+    debug_assert_eq!(_extended_types.len(), _extended_defaults.len());
+
+    //
+    //  for each extended state field, print a line
+    //
+    // TODO: we are manually aligning the columns of the field name and field
+    // type, is there a better way ? (record node, html table, format width?)
+    if !_extended_types.is_empty() {
+      debug_assert!(!_extended_defaults.is_empty());
+
+      s.push_str ("\n      ");
+
+      let mut extended_string = String::new();
+      let separator = ",<BR ALIGN=\"LEFT\"/>\n      ";
+
+      let longest_fieldname = _extended_fields.iter().fold (0,
+        |longest, ref fieldname| {
+          let len = fieldname.len();
+          if longest < len {
+            len
+          } else {
+            longest
+          }
+        }
+      );
+
+      let longest_typename = _extended_types.iter().fold (0,
+        |longest, ref typename| {
+          let len = typename.len();
+          if longest < len {
+            len
+          } else {
+            longest
+          }
+        }
+      );
+
+      for (i,f) in _extended_fields.iter().enumerate() {
+        use escapade::Escapable;
+
+        let spacer1 : String = std::iter::repeat (' ')
+          .take(longest_fieldname - f.len())
+          .collect();
+        let _spacer2 : String = std::iter::repeat (' ')
+          .take (longest_typename - _extended_types[i].len())
+          .collect();
+
+        if _extended_defaults[i].is_empty() {
+          extended_string.push_str (
+            format!("{}{} : {}", f, spacer1, _extended_types[i])
+              .escape().into_inner().as_str()
+          );
+        } else {
+          extended_string.push_str (
+            format!("{}{} : {}{} = {}",
+              f, spacer1, _extended_types[i], _spacer2, _extended_defaults[i])
+            .escape().into_inner().as_str()
+          );
+        }
+        extended_string.push_str (format!("{}", separator).as_str());
+      }
+
+      let len = extended_string.len();
+      extended_string.truncate (len - separator.len());
+      s.push_str (format!("{}", extended_string).as_str());
+    }
+
+    // TODO
+    /*
+    // internal state transitions
+    let mut _extended_once = false;
+    $({
+      match EventId::$event.transition() {
+
+        Transition::Internal => {
+          if !_extended_once {
+            s.push_str (
+              "<BR ALIGN=\"LEFT\"/></FONT>\
+               <BR ALIGN=\"LEFT\"/>\
+               <FONT FACE=\"Sans Italic\">");
+            _extended_once = true;
+          } else {
+            s.push_str ("<BR ALIGN=\"LEFT\"/></FONT>");
+            s.push_str ("<BR ALIGN=\"LEFT\"/>\
+              <FONT FACE=\"Sans Italic\">");
+          }
+          s.push_str (format!("{} </FONT><FONT FACE=\"Mono\">(",
+            stringify!($event)).as_str());
+
+          $(
+          {
+            use escapade::Escapable;
+            let default_val : $param_type = def_machine!{
+              @expr_default $($param_default)*
+            };
+            s.push_str (
+              format!("{} : {} = {}, ",
+                stringify!($param_name),
+                stringify!($param_type).escape().into_inner(),
+                format!("{:?}", default_val).escape().into_inner()
+            ).as_str());
+          }
+          )*
+
+          if unwrap!{ s.chars().last() } != '(' {
+            debug_assert_eq!(unwrap!{ s.chars().last() }, ' ');
+            let len = s.len();
+            s.truncate (len-2);
+          }
+          s.push_str (")<BR ALIGN=\"LEFT\"/>");
+
+          $(
+          let mut guard = stringify!($guard_expr).to_string();
+          if guard.as_str() != "true" {
+            use escapade::Escapable;
+            guard = "  [ ".to_string() + guard.as_str();
+            guard.push (' ');
+            guard.push (']');
+            let guard = guard.escape().into_inner();
+            s.push_str (format!("{}<BR ALIGN=\"LEFT\"/>", guard).as_str());
+          }
+          )*
+
+          $(
+          let mut action = stringify!($action_expr).to_string();
+          if action.as_str() != "()" {
+            use escapade::Escapable;
+            if unwrap!{ action.chars().next() } != '{' {
+              debug_assert!(unwrap!{ action.chars().last() } != '}');
+              action = "  { ".to_string() + action.as_str();
+              action.push_str (" }");
+            } else {
+              debug_assert_eq!(unwrap!{ action.chars().last() }, '}');
+              action = "  ".to_string() + action.as_str();
+            }
+            let action = action.escape().into_inner();
+            s.push_str (format!("{}", action).as_str());
+          }
+          )*
+
+        }
+        _ => ()
+
+      }
+
+    })+
+    // end internal state transitions
+    */
+
+    s.push_str ("<BR ALIGN=\"LEFT\"/>");
+    if !_extended_types.is_empty() {
+      s.push_str ("\n      ");
+    }
+    if _mono_font {
+      s.push_str ("</FONT><BR/>");
+    }
+    s.push_str ( ">\
+      \n    shape=record\
+      \n    style=rounded\
+      \n    fontname=\"Sans Bold Italic\"\n");
     s
   }}; // end @fn_dotfile_subgraph_begin
 
@@ -475,9 +957,11 @@ macro_rules! def_machine {
   //  @fn_dotfile_node
   //
   ( @fn_dotfile_node
-    state $state:ident {}
+    state $state:ident (
+      $($data_name:ident : $data_type:ty $(= $data_default:expr)*),*
+    )
     EVENTS [
-      $(event $event:ident <$source:ident> => <$target:ident>
+      $(event $event:ident <$source:ident> $(=> <$target:ident>)*
         $($action:block)*
       )+
     ]
@@ -489,32 +973,27 @@ macro_rules! def_machine {
       "    {:?} [label=<<B>{:?}</B>",
       StateId::$state, StateId::$state).as_str());
 
-    // TODO: state variables
-    /*
-    let mut mono_font = false;
-    let mut var_fields = std::vec::Vec::<String>::new();
-    let mut var_types = std::vec::Vec::<String>::new();
-    let mut var_defaults = std::vec::Vec::<String>::new();
-    // the following 3 lines are to avoid unused_mut warnings
-    var_fields.clear();
-    var_types.clear();
-    var_defaults.clear();
+    let mut _mono_font     = false;
+    let mut _data_fields   = Vec::<String>::new();
+    let mut _data_types    = Vec::<String>::new();
+    let mut _data_defaults = Vec::<String>::new();
 
+    // NOTE: within the mono font block leading whitespace in the source
+    // is counted as part of the layout so we don't indent these lines
     $({
-      if !mono_font {
-        s.push_str ("|<FONT FACE=\"Mono\"><BR/>");
-        mono_font = true;
+      if !_mono_font {
+        s.push_str ("|<FONT FACE=\"Mono\"><BR/>\n");
+        _mono_font = true;
       }
-      var_fields.push (stringify!($var_name).to_string());
-      var_types.push (stringify!($var_type).to_string());
-      let default_val : $var_type = def_machine!{
-        @impl_expr_default $($var_default)*
-      };
-      var_defaults.push (format!("{:?}", default_val));
+      _data_fields.push (stringify!($data_name).to_string());
+      _data_types.push (stringify!($data_type).to_string());
+      let default_val : $data_type
+        = def_machine!(@expr_default $($data_default)*);
+      _data_defaults.push (format!("{:?}", default_val));
     })*
 
-    debug_assert_eq!(var_fields.len(), var_types.len());
-    debug_assert_eq!(var_types.len(),  var_defaults.len());
+    debug_assert_eq!(_data_fields.len(), _data_types.len());
+    debug_assert_eq!(_data_types.len(),  _data_defaults.len());
 
     //
     //  for each data field, print a line
@@ -522,13 +1001,14 @@ macro_rules! def_machine {
     // TODO: we are manually aligning the columns of the field
     // name, field type, and default values, is there a better
     // way ? (record node, html table, format width?)
-    if !var_types.is_empty() {
-      debug_assert!(!var_defaults.is_empty());
+    if !_data_types.is_empty() {
+      debug_assert!(_mono_font);
+      debug_assert!(!_data_defaults.is_empty());
 
-      let mut var_string = String::new();
-      let separator = ",<BR ALIGN=\"LEFT\"/>";
+      let mut data_string = String::new();
+      let separator = ",<BR ALIGN=\"LEFT\"/>\n";
 
-      let longest_fieldname = var_fields.iter().fold (0,
+      let longest_fieldname = _data_fields.iter().fold (0,
         |longest, ref fieldname| {
           let len = fieldname.len();
           if longest < len {
@@ -539,7 +1019,7 @@ macro_rules! def_machine {
         }
       );
 
-      let longest_typename = var_types.iter().fold (0,
+      let longest_typename = _data_types.iter().fold (0,
         |longest, ref typename| {
           let len = typename.len();
           if longest < len {
@@ -550,30 +1030,28 @@ macro_rules! def_machine {
         }
       );
 
-      for (i,f) in var_fields.iter().enumerate() {
+      for (i,f) in _data_fields.iter().enumerate() {
         use escapade::Escapable;
 
-        let spacer1 : String = std::iter::repeat (' ').take(
-          longest_fieldname - f.len()
-        ).collect();
-        let spacer2 : String = std::iter::repeat (' ').take(
-          longest_typename - var_types[i].len()
-        ).collect();
+        let spacer1 : String = std::iter::repeat (' ')
+          .take(longest_fieldname - f.len())
+          .collect();
+        let spacer2 : String = std::iter::repeat (' ')
+          .take(longest_typename - _data_types[i].len())
+          .collect();
 
-        var_string.push_str (
+        data_string.push_str (
           format!("{}{} : {}{} = {}",
-            f, spacer1, var_types[i], spacer2,
-            var_defaults[i])
-          .escape().into_inner().as_str()
+            f, spacer1, _data_types[i], spacer2, _data_defaults[i]
+          ).escape().into_inner().as_str()
         );
-        var_string.push_str (format!("{}", separator).as_str());
+        data_string.push_str (format!("{}", separator).as_str());
       }
 
-      let len = var_string.len();
-      var_string.truncate (len - separator.len());
-      s.push_str (format!("{}", var_string).as_str());
+      let len = data_string.len();
+      data_string.truncate (len - separator.len());
+      s.push_str (format!("{}", data_string).as_str());
     }
-    */
 
     /*
     if unwrap!{ s.chars().last() } == '>' {
@@ -655,7 +1133,7 @@ macro_rules! def_machine {
           $({
             use escapade::Escapable;
             let default_val : $param_type = def_machine!{
-              @impl_expr_default $($param_default)*
+              @expr_default $($param_default)*
             };
             s.push_str (
               format!("{} : {} = {}, ",
@@ -712,6 +1190,9 @@ macro_rules! def_machine {
       s.push_str ("<BR ALIGN=\"LEFT\"/></FONT>");
     }
     */
+    if _mono_font {
+      s.push_str ("</FONT><BR/>");
+    }
     s.push_str (">]\n");
     s
   }};  // end @fn_dotfile_node
@@ -722,8 +1203,8 @@ macro_rules! def_machine {
   ( @fn_dotfile_node_initial ) => {{
     let mut s = String::new();
     s.push_str (
-      "    INITIAL [label=\"\", shape=circle, width=0.2,\n      \
-           style=filled, fillcolor=black]\n");
+      "    INITIAL [label=\"\", shape=circle, width=0.2,\
+      \n      style=filled, fillcolor=black]\n");
     s
   }};
 
@@ -733,8 +1214,8 @@ macro_rules! def_machine {
   ( @fn_dotfile_node_terminal ) => {{
     let mut s = String::new();
     s.push_str (
-      "    TERMINAL [label=\"\", shape=doublecircle, \
-           width=0.2,\n      style=filled, fillcolor=black]\n");
+      "    TERMINAL [label=\"\", shape=doublecircle, width=0.2,\
+      \n      style=filled, fillcolor=black]\n");
     s
   }};
 
@@ -751,22 +1232,22 @@ macro_rules! def_machine {
            </FONT>",
       StateId::$source, StateId::$target, EventId::$event).as_str());
 
-    let mut mono_font = false;
+    let mut _mono_font = false;
     // TODO: params
     /*
     let mut open_params = false;
     $({
       use escapade::Escapable;
       if !open_params {
-        if !mono_font {
+        if !_mono_font {
           s.push_str ("<FONT FACE=\"Mono\">");
-          mono_font = true;
+          _mono_font = true;
         }
         s.push_str ("(".as_str());
         open_params = true;
       }
       let default_val : $param_type = def_machine!{
-        @impl_expr_default $($param_default)*
+        @expr_default $($param_default)*
       };
       s.push_str (
         format!("{} : {} = {}, ",
@@ -789,9 +1270,9 @@ macro_rules! def_machine {
     // TODO: guards
     /*
     $(
-      if !mono_font {
+      if !_mono_font {
         s.push_str ("<FONT FACE=\"Mono\">");
-        mono_font = true;
+        _mono_font = true;
       }
       let mut guard = stringify!($guard_expr).to_string();
       if guard.as_str() != "true" {
@@ -812,9 +1293,9 @@ macro_rules! def_machine {
       "{}" | "{ }" => {}
       _ => {
         use escapade::Escapable;
-        if !mono_font {
+        if !_mono_font {
           s.push_str ("<FONT FACE=\"Mono\"><BR/>");
-          mono_font = true;
+          _mono_font = true;
         }
         // TODO: different formatting if params or guards were present
         //action = "  ".to_string() + action.as_str();
@@ -824,12 +1305,19 @@ macro_rules! def_machine {
     }
     )*
 
-    if mono_font {
+    if _mono_font {
       s.push_str ("</FONT>");
     }
     s.push_str (">]\n");
     s
   }};  // end @fn_dotfile_transition: external
+
+  //
+  //  @fn_dotfile_transition: internal
+  //
+  ( @fn_dotfile_transition
+    event $event:ident <$source:ident> $($action:block)*
+  ) => {{ /* do not draw edge */ String::new() }};
 
   // TODO:
   /*
@@ -885,17 +1373,18 @@ macro_rules! def_machine {
       ),+>)*
     {
       STATES [
-        $(state $state:ident {})+
+        $(state $state:ident (
+          $($data_name:ident : $data_type:ty $(= $data_default:expr)*),*
+        ))+
       ]
       EVENTS [
-        $(event $event:ident <$source:ident> => <$target:ident>
-          $($action:block)*
+        $(event $event:ident <$source:ident> $(=> <$target:ident>)*
+          $({ $($state_data:ident),* } => $action:block)*
         )+
       ]
-      DATA [
-        $($data_name:ident : $data_type:ty $(= $data_default:expr)*),*
+      EXTENDED [
+        $($ext_name:ident : $ext_type:ty $(= $ext_default:expr)*),*
       ]
-      $(self_reference: $self_reference:ident)*
       initial_state: $initial:ident $({
         $(initial_action: $initial_action:block)*
       })*
@@ -914,13 +1403,24 @@ macro_rules! def_machine {
       $($($type_var : $type_constraint),+)*
     ),+)*
     {
-      state : State,
-      data  : Data $(<$($type_var),+>)*
+      state          : State,
+      extended_state : ExtendedState $(<$($type_var),+>)*
     }
 
     #[derive(Clone,Debug,PartialEq)]
     pub struct State {
-      id : StateId
+      id   : StateId,
+      data : StateData
+    }
+
+    #[derive(Debug)]
+    pub struct ExtendedState $(<$($type_var),+>)* where
+    $($(
+      $type_var : std::fmt::Debug,
+      $($($type_var : $type_constraint),+)*
+    ),+)*
+    {
+      $(pub $ext_name : $ext_type),*
     }
 
     #[derive(Clone,Debug,PartialEq)]
@@ -928,23 +1428,21 @@ macro_rules! def_machine {
       id : EventId
     }
 
-    #[derive(Debug)]
-    pub struct Data $(<$($type_var),+>)* where
-    $($(
-      $type_var : std::fmt::Debug,
-      $($($type_var : $type_constraint),+)*
-    ),+)*
-    {
-      $(pub $data_name : $data_type),*
-    }
-
     #[derive(Clone,Debug,PartialEq)]
     pub enum StateId {
       $($state),+
     }
 
+    #[derive(Clone,Debug,PartialEq)]
+    pub enum StateData {
+      $($state {
+        $($data_name : $data_type),*
+      }),+
+    }
+
     #[derive(Debug,PartialEq)]
     pub enum Transition {
+      Internal (StateId),
       External (StateId, StateId)
     }
 
@@ -967,10 +1465,10 @@ macro_rules! def_machine {
         println!("...{} report", machine_name);
       }
 
-      pub fn new (data : Data $(<$($type_var),+>)*) -> Self {
+      pub fn new (extended_state : ExtendedState $(<$($type_var),+>)*) -> Self {
         Self {
           state: State::initial(),
-          data
+          extended_state
         }
       }
 
@@ -982,46 +1480,24 @@ macro_rules! def_machine {
 
       #[allow(dead_code)]
       #[inline]
-      pub fn data (&self) -> &Data $(<$($type_var),+>)* {
-        &self.data
-      }
-
-      pub fn handle_event (&mut self, event : Event)
-        -> Result <(), macro_machines::HandleEventException>
-      {
-        trace!("{}::handle_event: {:?}", stringify!($machine), event);
-        match event.transition() {
-          Transition::External (source, target) => {
-            if self.state.id == source {
-              trace!("<<< Ok: {:?} => {:?}", source, target);
-              self.state.id = target;
-              {
-                $(let $self_reference = self;)*
-                match event.id {
-                  $(EventId::$event => $($action)*)+
-                }
-              }
-              Ok (())
-            } else {
-              trace!("<<< Err: current state ({:?}) != source state ({:?})",
-                self.state.id, source);
-              Err (macro_machines::HandleEventException::WrongState)
-            }
-          }
-        }
+      pub fn extended_state (&self) -> &ExtendedState $(<$($type_var),+>)* {
+        &self.extended_state
       }
 
       def_machine!{
-        @impl_fn_dotfile
-        machine $machine $(<$($type_var),+>)* {
-          STATES    [ $(state $state {})+ ]
-          EVENTS    [ $(event $event <$source> => <$target> $($action)*)+ ]
-          EVENTS_TT [ $(event $event <$source> => <$target> $($action)*)+ ]
-          DATA      [ $($data_name : $data_type $(= $data_default)*),* ]
-          initial_state:  $initial
-          $(terminal_state: $terminal $({
-            $(terminate_failure: $terminate_failure)*
-          })*)*
+        @impl_fn_handle_event
+        machine $machine {
+          STATES [
+            $(state $state ($($data_name : $data_type $(= $data_default)*),*))+
+          ]
+          EVENTS [
+            $(event $event <$source> $(=> <$target>)*
+              $({$($state_data),*} => $action)*
+            )+
+          ]
+          EXTENDED [
+            $($ext_name : $ext_type $(= $ext_default)*),*
+          ]
         }
       }
 
@@ -1036,56 +1512,94 @@ macro_rules! def_machine {
       fn drop (&mut self) {
         trace!("{}::drop", stringify!($machine));
         let _state_id = self.state.id.clone();
-        $(let $self_reference = self;)*
-        $(
-        if _state_id != StateId::$terminal {
-          trace!("<<< current state ({:?}) != terminal state ({:?})",
-            _state_id, StateId::$terminal);
-          $($($terminate_failure)*)*
-        } else {
-          $($($terminate_success)*)*
-        })*
+        #[allow(unused_variables)]
+        match &mut self.extended_state {
+          &mut ExtendedState { $(ref mut $ext_name,)*.. } => {
+            $(
+            if _state_id != StateId::$terminal {
+              trace!("<<< current state ({:?}) != terminal state ({:?})",
+                _state_id, StateId::$terminal);
+              $($($terminate_failure)*)*
+            } else {
+              $($($terminate_success)*)*
+            }
+            )*
+          }
+        }
       }
     }
 
     impl State {
-      pub const fn initial() -> Self {
-        State {
-          id: StateId::initial()
-        }
+      #[inline]
+      pub fn initial() -> Self {
+        StateId::initial().into()
       }
 
       #[inline]
       pub fn id (&self) -> &StateId {
         &self.id
       }
+
+      #[inline]
+      pub fn data (&self) -> &StateData {
+        &self.data
+      }
+    }
+
+    impl From <StateId> for State {
+      fn from (id : StateId) -> Self {
+        State {
+          id:   id.clone(),
+          data: id.into()
+        }
+      }
+    }
+
+    impl StateData {
+      #[inline]
+      pub fn initial() -> Self {
+        StateId::initial().into()
+      }
+
+      $(
+      #[inline]
+      pub fn terminal() -> Self {
+        // we use the metavariable here to take advantage of the
+        // zero-or-one repetition
+        StateId::$terminal.into()
+      }
+      )*
+    }
+
+    impl From <StateId> for StateData {
+      fn from (id : StateId) -> Self {
+        match id {
+          $(StateId::$state => StateData::$state {
+            $($data_name: def_machine!(@expr_default $($data_default)*)),*
+          }),+
+        }
+      }
     }
 
     impl StateId {
+      #[inline]
       pub const fn initial() -> Self {
         StateId::$initial
       }
       $(
+      #[inline]
       pub const fn terminal() -> Self {
         StateId::$terminal
       }
       )*
     }
 
-    impl From <StateId> for State {
-      fn from (id : StateId) -> Self {
-        State {
-          id: id
-        }
-      }
-    }
-
     impl EventId {
       pub fn transition (&self) -> Transition {
-        match self {
+        match *self {
           $(
-          &EventId::$event =>
-            Transition::External (StateId::$source, StateId::$target)
+          EventId::$event =>
+            def_machine!(@event_transition <$source> $(=> <$target>)*)
           ),+
         }
       }
@@ -1105,7 +1619,8 @@ macro_rules! def_machine {
       }
     }
 
-  };
+  };  // end @base
+
 } // end def_machine!
 
 /// State machine that requires runtime initialization.
@@ -1120,17 +1635,18 @@ macro_rules! def_machine_nodefault {
       ),+>)*
     {
       STATES [
-        $(state $state:ident {})+
+        $(state $state:ident (
+          $($data_name:ident : $data_type:ty $(= $data_default:expr)*),*
+        ))+
       ]
       EVENTS [
-        $(event $event:ident <$source:ident> => <$target:ident>
-          $($action:block)*
+        $(event $event:ident <$source:ident> $(=> <$target:ident>)*
+          $({ $($state_data:ident),* } => $action:block)*
         )+
       ]
-      DATA [
-        $($data_name:ident : $data_type:ty $(= $data_default:expr)*),*
+      EXTENDED [
+        $($ext_name:ident : $ext_type:ty $(= $ext_default:expr)*),*
       ]
-      $(self_reference: $self_reference:ident)*
       initial_state: $initial:ident $({
         $(initial_action: $initial_action:block)*
       })*
@@ -1148,15 +1664,16 @@ macro_rules! def_machine_nodefault {
         $(<$($type_var $(: { $($type_constraint),+ })*),+>)*
       {
         STATES [
-          $(state $state {})+
+          $(state $state ($($data_name : $data_type $(= $data_default)*),*))+
         ]
         EVENTS [
-          $(event $event <$source> => <$target> $($action)*)+
+          $(event $event <$source> $(=> <$target>)*
+            $({$($state_data),*} => $action)*
+          )+
         ]
-        DATA [
-          $($data_name : $data_type $(= $data_default)*),*
+        EXTENDED [
+          $($ext_name : $ext_type $(= $ext_default)*),*
         ]
-        $(self_reference: $self_reference)*
         initial_state: $initial $({
           $(initial_action: $initial_action)*
         })*
@@ -1167,7 +1684,30 @@ macro_rules! def_machine_nodefault {
       }
     }
 
-    impl $(<$($type_var),+>)* Data $(<$($type_var),+>)* where
+    impl $(<$($type_var),+>)* $machine $(<$($type_var),+>)* where
+    $($(
+      $type_var : std::fmt::Debug,
+      $($($type_var : $type_constraint),+)*
+    ),+)*
+    {
+      def_machine!{
+        @impl_fn_dotfile_nodefault
+        machine $machine $(<$($type_var),+>)* {
+          STATES    [
+            $(state $state ($($data_name : $data_type = $($data_default)*),*))+
+          ]
+          EVENTS    [ $(event $event <$source> $(=> <$target>)* $($action)*)+ ]
+          EVENTS_TT [ $(event $event <$source> $(=> <$target>)* $($action)*)+ ]
+          EXTENDED      [ $($ext_name : $ext_type $(= $ext_default)*),* ]
+          initial_state:  $initial
+          $(terminal_state: $terminal $({
+            $(terminate_failure: $terminate_failure)*
+          })*)*
+        }
+      }
+    }
+
+    impl $(<$($type_var),+>)* ExtendedState $(<$($type_var),+>)* where
     $($(
       $type_var : std::fmt::Debug,
       $($($type_var : $type_constraint),+)*
@@ -1176,14 +1716,20 @@ macro_rules! def_machine_nodefault {
       /// Creation method that allows overriding defaults. If a field does not
       /// have a default specified it is a required argument.
       // TODO: indicate which arguments are missing in case of failure
-      // TODO: make required arguments not Option types
-      pub fn new ($($data_name : Option <$data_type>),*) -> Option <Self> {
+      // TODO: make required arguments non-Option types?
+      pub fn new ($($ext_name : Option <$ext_type>),*) -> Option <Self> {
         Some (Self {
-          $($data_name: {
-            if let Some ($data_name) = $data_name {
-              $data_name
+          $($ext_name: {
+            if let Some ($ext_name) = $ext_name {
+              $ext_name
             } else {
-              def_machine!(@impl_expr_nodefault $($data_default)*)
+              if let Some (default) =
+                def_machine!(@expr_option $($ext_default)*)
+              {
+                default
+              } else {
+                return None
+              }
             }
           }),*
         })
@@ -1199,16 +1745,17 @@ macro_rules! def_machine_nodefault {
       $type_var:ident $(: { $($type_constraint:path),+ })*
     ),+>)*
     $(($(
-      $data_name:ident : $data_type:ty $(= $data_default:expr)*
+      $ext_name:ident : $ext_type:ty $(= $ext_default:expr)*
     ),*))*
-    $(where self = $self_reference:ident)*
     {
       STATES [
-        $(state $state:ident {})+
+        $(state $state:ident (
+          $($data_name:ident : $data_type:ty $(= $data_default:expr)*),*
+        ))+
       ]
       EVENTS [
-        $(event $event:ident <$source:ident> => <$target:ident>
-          $($action:block)*
+        $(event $event:ident <$source:ident> $(=> <$target:ident>)*
+          $({ $($state_data:ident),* } => $action:block)*
         )+
       ]
       initial_state: $initial:ident $({
@@ -1225,15 +1772,16 @@ macro_rules! def_machine_nodefault {
     def_machine_nodefault!{
       machine $machine $(<$($type_var $(: { $($type_constraint),+ })*),+>)* {
         STATES [
-          $(state $state {})+
+          $(state $state ($($data_name : $data_type $(= $data_default)*),*))+
         ]
         EVENTS [
-          $(event $event <$source> => <$target> $($action)*)+
+          $(event $event <$source> $(=> <$target>)*
+            $({$($state_data),*} => $action)*
+          )+
         ]
-        DATA [
-          $($($data_name : $data_type $(= $data_default)*),*)*
+        EXTENDED [
+          $($($ext_name : $ext_type $(= $ext_default)*),*)*
         ]
-        $(self_reference: $self_reference)*
         initial_state: $initial $({
           $(initial_action: $initial_action)*
         })*
