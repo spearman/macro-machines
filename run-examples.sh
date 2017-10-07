@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -e
+
 while getopts "v" opt; do
   case $opt in
     v)

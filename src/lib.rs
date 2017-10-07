@@ -34,6 +34,7 @@ macro_rules! def_machine {
       EXTENDED [
         $($ext_name:ident : $ext_type:ty $(= $ext_default:expr)*),*
       ]
+      $(state_reference: $state_reference:ident)*
       initial_state: $initial:ident $({
         $(initial_action: $initial_action:block)*
       })*
@@ -61,6 +62,7 @@ macro_rules! def_machine {
         EXTENDED [
           $($ext_name : $ext_type $(= $ext_default)*),*
         ]
+        $(state_reference: $state_reference)*
         initial_state: $initial $({
           $(initial_action: $initial_action)*
         })*
@@ -143,6 +145,7 @@ macro_rules! def_machine {
     $(($(
       $ext_name:ident : $ext_type:ty $(= $ext_default:expr)*
     ),*))*
+      $(where let $state_reference:ident = &mut self.state)*
     {
       STATES [
         $(state $state:ident (
@@ -178,6 +181,7 @@ macro_rules! def_machine {
         EXTENDED [
           $($($ext_name : $ext_type $(= $ext_default)*),*)*
         ]
+        $(state_reference: $state_reference)*
         initial_state: $initial $({
           $(initial_action: $initial_action)*
         })*
@@ -735,8 +739,8 @@ macro_rules! def_machine {
   //
   //  @fn_dotfile_subgraph_begin_nodefault
   //
-  /// Expressions without a provided default are replaced with an empty string
-  /// instead of a `Default::default()` instance.
+  //  Expressions without a provided default are replaced with an empty string
+  //  instead of a `Default::default()` instance.
   ( @fn_dotfile_subgraph_begin_nodefault
     machine $machine:ident $(<$($type_var:ident),+>)* {
       EVENTS [
@@ -1385,6 +1389,7 @@ macro_rules! def_machine {
       EXTENDED [
         $($ext_name:ident : $ext_type:ty $(= $ext_default:expr)*),*
       ]
+      $(state_reference: $state_reference:ident)*
       initial_state: $initial:ident $({
         $(initial_action: $initial_action:block)*
       })*
@@ -1515,6 +1520,7 @@ macro_rules! def_machine {
         #[allow(unused_variables)]
         match &mut self.extended_state {
           &mut ExtendedState { $(ref mut $ext_name,)*.. } => {
+            $(let $state_reference = &mut self.state;)*
             $(
             if _state_id != StateId::$terminal {
               trace!("<<< current state ({:?}) != terminal state ({:?})",
@@ -1647,6 +1653,7 @@ macro_rules! def_machine_nodefault {
       EXTENDED [
         $($ext_name:ident : $ext_type:ty $(= $ext_default:expr)*),*
       ]
+      $(state_reference: $state_reference:ident)*
       initial_state: $initial:ident $({
         $(initial_action: $initial_action:block)*
       })*
@@ -1674,6 +1681,7 @@ macro_rules! def_machine_nodefault {
         EXTENDED [
           $($ext_name : $ext_type $(= $ext_default)*),*
         ]
+        $(state_reference: $state_reference)*
         initial_state: $initial $({
           $(initial_action: $initial_action)*
         })*
@@ -1747,6 +1755,7 @@ macro_rules! def_machine_nodefault {
     $(($(
       $ext_name:ident : $ext_type:ty $(= $ext_default:expr)*
     ),*))*
+      $(where let $state_reference:ident = &mut self.state)*
     {
       STATES [
         $(state $state:ident (
@@ -1782,6 +1791,7 @@ macro_rules! def_machine_nodefault {
         EXTENDED [
           $($($ext_name : $ext_type $(= $ext_default)*),*)*
         ]
+        $(state_reference: $state_reference)*
         initial_state: $initial $({
           $(initial_action: $initial_action)*
         })*
