@@ -1412,7 +1412,7 @@ macro_rules! def_machine {
       extended_state : ExtendedState $(<$($type_var),+>)*
     }
 
-    #[derive(Clone,Debug,PartialEq)]
+    #[derive(Debug)]
     pub struct State {
       id   : StateId,
       data : StateData
@@ -1438,7 +1438,7 @@ macro_rules! def_machine {
       $($state),+
     }
 
-    #[derive(Clone,Debug,PartialEq)]
+    #[derive(Debug)]
     pub enum StateData {
       $($state {
         $($data_name : $data_type),*

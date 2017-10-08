@@ -17,7 +17,8 @@ done
 
 for e in `ls examples/`; do
   example_name=`basename -s .rs $e`
-  cargo run --example $example_name && make -f MakefileDot $example_name
+  cargo run --example $example_name
+  make -f MakefileDot $example_name
 done
 
 exit
