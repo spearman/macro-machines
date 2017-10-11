@@ -134,6 +134,7 @@ macro_rules! def_machine {
       }
     }
   };
+  //  end main interface
 
   //
   //  alternate syntax
@@ -193,6 +194,7 @@ macro_rules! def_machine {
     }
 
   };
+  //  end alternate syntax
 
   //
   //  @impl_fn_handle_event
@@ -385,7 +387,25 @@ macro_rules! def_machine {
 
   ) => {
 
+    #[inline]
     pub fn dotfile() -> String {
+      $machine$(::<$($type_var),+>)*::_dotfile (false, false)
+    }
+
+    #[inline]
+    pub fn dotfile_hide_defaults() -> String {
+      $machine$(::<$($type_var),+>)*::_dotfile (true, false)
+    }
+
+    #[inline]
+    pub fn dotfile_pretty_defaults() -> String {
+      $machine$(::<$($type_var),+>)*::_dotfile (false, true)
+    }
+
+    fn _dotfile (
+      hide_defaults   : bool,
+      pretty_defaults : bool
+    ) -> String {
       let mut s = String::new();
       // begin graph
       s.push_str (def_machine!(@fn_dotfile_begin).as_str());
@@ -401,13 +421,33 @@ macro_rules! def_machine {
 
       // nodes
       s.push_str (def_machine!(@fn_dotfile_node_initial).as_str());
-      $(
-      s.push_str (def_machine!(
-        @fn_dotfile_node
-        state $state ($($data_name : $data_type $(= $data_default)*),*)
-        EVENTS $events_tt
-      ).as_str());
-      )+
+      if !hide_defaults {
+        if !pretty_defaults {
+          $(
+          s.push_str (def_machine!(
+            @fn_dotfile_node
+            state $state ($($data_name : $data_type $(= $data_default)*),*)
+            EVENTS $events_tt
+          ).as_str());
+          )+
+        } else {
+          $(
+          s.push_str (def_machine!(
+            @fn_dotfile_node_pretty_defaults
+            state $state ($($data_name : $data_type $(= $data_default)*),*)
+            EVENTS $events_tt
+          ).as_str());
+          )+
+        }
+      } else {
+        $(
+        s.push_str (def_machine!(
+          @fn_dotfile_node_hide_defaults
+          state $state ($($data_name : $data_type $(= $data_default)*),*)
+          EVENTS $events_tt
+        ).as_str());
+        )+
+      }
 
       // transitions
       s.push_str (
@@ -465,7 +505,25 @@ macro_rules! def_machine {
 
   ) => {
 
+    #[inline]
     pub fn dotfile() -> String {
+      $machine$(::<$($type_var),+>)*::_dotfile (false, false)
+    }
+
+    #[inline]
+    pub fn dotfile_hide_defaults() -> String {
+      $machine$(::<$($type_var),+>)*::_dotfile (true, false)
+    }
+
+    #[inline]
+    pub fn dotfile_pretty_defaults() -> String {
+      $machine$(::<$($type_var),+>)*::_dotfile (false, true)
+    }
+
+    fn _dotfile (
+      hide_defaults   : bool,
+      pretty_defaults : bool
+    ) -> String {
       let mut s = String::new();
       // begin graph
       s.push_str (def_machine!(@fn_dotfile_begin).as_str());
@@ -481,13 +539,33 @@ macro_rules! def_machine {
 
       // nodes
       s.push_str (def_machine!(@fn_dotfile_node_initial).as_str());
-      $(
-      s.push_str (def_machine!(
-        @fn_dotfile_node
-        state $state ($($data_name : $data_type $(= $data_default)*),*)
-        EVENTS $events_tt
-      ).as_str());
-      )+
+      if !hide_defaults {
+        if !pretty_defaults {
+          $(
+          s.push_str (def_machine!(
+            @fn_dotfile_node
+            state $state ($($data_name : $data_type $(= $data_default)*),*)
+            EVENTS $events_tt
+          ).as_str());
+          )+
+        } else {
+          $(
+          s.push_str (def_machine!(
+            @fn_dotfile_node_pretty_defaults
+            state $state ($($data_name : $data_type $(= $data_default)*),*)
+            EVENTS $events_tt
+          ).as_str());
+          )+
+        }
+      } else {
+        $(
+        s.push_str (def_machine!(
+          @fn_dotfile_node_hide_defaults
+          state $state ($($data_name : $data_type $(= $data_default)*),*)
+          EVENTS $events_tt
+        ).as_str());
+        )+
+      }
 
       // transitions
       s.push_str (
@@ -1200,6 +1278,349 @@ macro_rules! def_machine {
     s.push_str (">]\n");
     s
   }};  // end @fn_dotfile_node
+
+  //
+  //  @fn_dotfile_node_pretty_defaults
+  //
+  ( @fn_dotfile_node_pretty_defaults
+    state $state:ident (
+      $($data_name:ident : $data_type:ty $(= $data_default:expr)*),*
+    )
+    EVENTS [
+      $(event $event:ident <$source:ident> $(=> <$target:ident>)*
+        $($action:block)*
+      )+
+    ]
+
+  ) => {{
+    let mut s = String::new();
+
+    s.push_str (format!(
+      "    {:?} [label=<<B>{:?}</B>",
+      StateId::$state, StateId::$state).as_str());
+
+    let mut _mono_font     = false;
+    let mut _data_fields   = Vec::<String>::new();
+    let mut _data_types    = Vec::<String>::new();
+    let mut _data_defaults = Vec::<String>::new();
+
+    // NOTE: within the mono font block leading whitespace in the source
+    // is counted as part of the layout so we don't indent these lines
+    $({
+      if !_mono_font {
+        s.push_str ("|<FONT FACE=\"Mono\"><BR/>\n");
+        _mono_font = true;
+      }
+      _data_fields.push (stringify!($data_name).to_string());
+      _data_types.push (stringify!($data_type).to_string());
+      let default_val : $data_type
+        = def_machine!(@expr_default $($data_default)*);
+      let pretty_br = {
+        use escapade::Escapable;
+        let pretty_newline = format!("{:#?}", default_val);
+        let mut pretty_br = String::new();
+        let separator = "<BR ALIGN=\"LEFT\"/>\n";
+        for line in pretty_newline.lines() {
+          pretty_br.push_str (line.escape().into_inner().as_str());
+          pretty_br.push_str (separator);
+        }
+        let len = pretty_br.len();
+        pretty_br.truncate (len - separator.len());
+        pretty_br
+      };
+      _data_defaults.push (pretty_br);
+    })*
+
+    debug_assert_eq!(_data_fields.len(), _data_types.len());
+    debug_assert_eq!(_data_types.len(),  _data_defaults.len());
+
+    //
+    //  for each data field, print a line
+    //
+    // TODO: we are manually aligning the columns of the field
+    // name, field type, and default values, is there a better
+    // way ? (record node, html table, format width?)
+    if !_data_types.is_empty() {
+      debug_assert!(_mono_font);
+      debug_assert!(!_data_defaults.is_empty());
+
+      let mut data_string = String::new();
+      let separator = ",<BR ALIGN=\"LEFT\"/>\n";
+
+      let longest_fieldname = _data_fields.iter().fold (0,
+        |longest, ref fieldname| {
+          let len = fieldname.len();
+          if longest < len {
+            len
+          } else {
+            longest
+          }
+        }
+      );
+
+      let longest_typename = _data_types.iter().fold (0,
+        |longest, ref typename| {
+          let len = typename.len();
+          if longest < len {
+            len
+          } else {
+            longest
+          }
+        }
+      );
+
+      for (i,f) in _data_fields.iter().enumerate() {
+        use escapade::Escapable;
+
+        let spacer1 : String = std::iter::repeat (' ')
+          .take(longest_fieldname - f.len())
+          .collect();
+        let spacer2 : String = std::iter::repeat (' ')
+          .take(longest_typename - _data_types[i].len())
+          .collect();
+
+        data_string.push_str (
+          format!("{}{} : {}{} = ",
+            f, spacer1, _data_types[i], spacer2
+          ).escape().into_inner().as_str()
+        );
+        data_string.push_str (_data_defaults[i].as_str());
+        data_string.push_str (format!("{}", separator).as_str());
+      }
+
+      let len = data_string.len();
+      data_string.truncate (len - separator.len());
+      s.push_str (format!("{}", data_string).as_str());
+    }
+
+    /*
+    if unwrap!{ s.chars().last() } == '>' {
+      let len = s.len();
+      s.truncate (len-5);
+    } else {
+      s.push_str ("</FONT>");
+    }
+    */
+
+    // TODO: state guards
+    /*
+    $({
+      use escapade::Escapable;
+      if !mono_font {
+        s.push_str ("|<FONT FACE=\"Mono\">");
+        mono_font = true;
+      }
+      s.push_str ("<BR ALIGN=\"LEFT\"/>");
+      let mut entry_string = "entry [".to_string();
+      $(
+      entry_string.push_str (
+        format!(" {} ", stringify!($entry_guard)).as_str());
+      )*
+      entry_string.push_str ("] {");
+      $(
+      entry_string.push_str (
+        format!(" {} ", stringify!($entry_action)).as_str());
+      )*
+      entry_string.push_str ("}");
+      s.push_str (entry_string.escape().into_inner().as_str());
+    })*
+
+    $({
+      use escapade::Escapable;
+      if !mono_font {
+        s.push_str ("|<FONT FACE=\"Mono\">");
+        mono_font = true;
+      }
+      s.push_str ("<BR ALIGN=\"LEFT\"/>");
+      let mut exit_string = "exit  [".to_string();
+      $(
+      exit_string.push_str (
+        format!(" {} ", stringify!($exit_guard)).as_str());
+      )*
+      exit_string.push_str ("] {");
+      $(
+      exit_string.push_str (
+        format!(" {} ", stringify!($exit_action)).as_str());
+      )*
+      exit_string.push_str ("}");
+      s.push_str (exit_string.escape().into_inner().as_str());
+    })*
+
+    // internal transitions
+    let mut _internal_once = false;
+    $({
+      if !mono_font {
+        s.push_str ("|<FONT FACE=\"Mono\">");
+        mono_font = true;
+      }
+      match EventId::$event.transition() {
+
+        Transition::Internal (StateId::$state) => {
+          if !_internal_once {
+            s.push_str (
+              "<BR ALIGN=\"LEFT\"/></FONT>|\
+               <BR ALIGN=\"LEFT\"/>\
+               <FONT FACE=\"Sans Italic\">");
+            _internal_once = true;
+          } else {
+            s.push_str ("<BR ALIGN=\"LEFT\"/></FONT>");
+            s.push_str ("<BR ALIGN=\"LEFT\"/>\
+              <FONT FACE=\"Sans Italic\">");
+          }
+          s.push_str (format!("{} </FONT><FONT FACE=\"Mono\">(",
+            stringify!($event)).as_str());
+
+          $({
+            use escapade::Escapable;
+            let default_val : $param_type = def_machine!{
+              @expr_default $($param_default)*
+            };
+            s.push_str (
+              format!("{} : {} = {}, ",
+                stringify!($param_name),
+                stringify!($param_type).escape().into_inner(),
+                format!("{:?}", default_val).escape().into_inner()
+            ).as_str());
+          })*
+
+          if unwrap!{ s.chars().last() } != '(' {
+            debug_assert_eq!(unwrap!{ s.chars().last() }, ' ');
+            let len = s.len();
+            s.truncate (len-2);
+          }
+          s.push_str (")<BR ALIGN=\"LEFT\"/>");
+
+          $(
+          let mut guard = stringify!($guard_expr).to_string();
+          if guard.as_str() != "true" {
+            use escapade::Escapable;
+            guard = "  [ ".to_string() + guard.as_str();
+            guard.push (' ');
+            guard.push (']');
+            let guard = guard.escape().into_inner();
+            s.push_str (format!("{}<BR ALIGN=\"LEFT\"/>", guard).as_str());
+          }
+          )*
+
+          $(
+          let mut action = stringify!($action_expr).to_string();
+          if action.as_str() != "()" {
+            use escapade::Escapable;
+            if unwrap!{ action.chars().next() } != '{' {
+              debug_assert!(unwrap!{ action.chars().last() } != '}');
+              action = "  { ".to_string() + action.as_str();
+              action.push_str (" }");
+            } else {
+              debug_assert_eq!(unwrap!{ action.chars().last() }, '}');
+              action = "  ".to_string() + action.as_str();
+            }
+            let action = action.escape().into_inner();
+            s.push_str (format!("{}", action).as_str());
+          }
+          )*
+
+        },
+        _ => ()
+
+      }
+
+    })+
+    // end internal transitions
+    if mono_font {
+      s.push_str ("<BR ALIGN=\"LEFT\"/></FONT>");
+    }
+    */
+    if _mono_font {
+      s.push_str ("</FONT><BR/>");
+    }
+    s.push_str (">]\n");
+    s
+  }};  // end @fn_dotfile_node_pretty_defaults
+
+  //
+  //  @fn_dotfile_node_hide_defaults
+  //
+  ( @fn_dotfile_node_hide_defaults
+    state $state:ident (
+      $($data_name:ident : $data_type:ty $(= $data_default:expr)*),*
+    )
+    EVENTS [
+      $(event $event:ident <$source:ident> $(=> <$target:ident>)*
+        $($action:block)*
+      )+
+    ]
+
+  ) => {{
+    let mut s = String::new();
+
+    s.push_str (format!(
+      "    {:?} [label=<<B>{:?}</B>",
+      StateId::$state, StateId::$state).as_str());
+
+    let mut _mono_font     = false;
+    let mut _data_fields   = Vec::<String>::new();
+    let mut _data_types    = Vec::<String>::new();
+
+    // NOTE: within the mono font block leading whitespace in the source
+    // is counted as part of the layout so we don't indent these lines
+    $({
+      if !_mono_font {
+        s.push_str ("|<FONT FACE=\"Mono\"><BR/>\n");
+        _mono_font = true;
+      }
+      _data_fields.push (stringify!($data_name).to_string());
+      _data_types.push (stringify!($data_type).to_string());
+    })*
+
+    debug_assert_eq!(_data_fields.len(), _data_types.len());
+
+    //
+    //  for each data field, print a line
+    //
+    // TODO: we are manually aligning the columns of the field name, field
+    // type, is there a better way ? (record node, html table, format width?)
+    if !_data_types.is_empty() {
+      debug_assert!(_mono_font);
+
+      let mut data_string = String::new();
+      let separator = ",<BR ALIGN=\"LEFT\"/>\n";
+
+      let longest_fieldname = _data_fields.iter().fold (0,
+        |longest, ref fieldname| {
+          let len = fieldname.len();
+          if longest < len {
+            len
+          } else {
+            longest
+          }
+        }
+      );
+
+      for (i,f) in _data_fields.iter().enumerate() {
+        use escapade::Escapable;
+
+        let spacer1 : String = std::iter::repeat (' ')
+          .take(longest_fieldname - f.len())
+          .collect();
+
+        data_string.push_str (
+          format!("{}{} : {}", f, spacer1, _data_types[i])
+            .escape().into_inner().as_str()
+        );
+        data_string.push_str (format!("{}", separator).as_str());
+      }
+
+      let len = data_string.len();
+      data_string.truncate (len - separator.len());
+      s.push_str (format!("{}", data_string).as_str());
+    }
+
+    if _mono_font {
+      s.push_str ("</FONT><BR ALIGN=\"LEFT\"/>");
+    }
+    s.push_str (">]\n");
+    s
+  }};  // end @fn_dotfile_node_hide_defaults
 
   //
   //  @fn_dotfile_node_initial

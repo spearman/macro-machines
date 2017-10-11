@@ -14,7 +14,7 @@ extern crate rs_utils;
 def_machine! {
   Door (open_count : u64) where let _state = &mut self.state {
     STATES [
-      state Closed (knock_count : u64)
+      state Closed (knock_count : u64, code : u64 = 12345)
       state Opened ()
     ]
     EVENTS [
@@ -63,6 +63,11 @@ fn main () {
   let dotfile_name = format!("{}.dot", **example_name);
   let mut f = unwrap!{ std::fs::File::create (dotfile_name) };
   unwrap!{ f.write_all (Door::dotfile().as_bytes()) };
+  std::mem::drop (f);
+
+  let dotfile_name = format!("{}-hide-defaults.dot", **example_name);
+  let mut f = unwrap!{ std::fs::File::create (dotfile_name) };
+  unwrap!{ f.write_all (Door::dotfile_hide_defaults().as_bytes()) };
   std::mem::drop (f);
 
   let mut door = Door::initial();
