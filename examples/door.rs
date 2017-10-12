@@ -12,7 +12,7 @@ extern crate rs_utils;
 #[macro_use] extern crate macro_machines;
 
 def_machine! {
-  Door (open_count : u64) where let _state = &mut self.state {
+  Door (open_count : u64) where let _door = self {
     STATES [
       state Closed (knock_count : u64, code : u64 = 12345)
       state Opened ()
@@ -22,20 +22,20 @@ def_machine! {
         *knock_count += 1;
       }
       event Open  <Closed> => <Opened> {} => {
-        *open_count += 1;
+        _door.as_mut().open_count += 1;
       }
       event Close <Opened> => <Closed>
     ]
     initial_state:  Closed {
       initial_action: {
         println!("hello");
-        println!("open_count: {:?}", *open_count);
+        println!("open_count: {:?}", _door.as_ref().open_count);
       }
     }
     terminal_state: Closed {
-      terminate_failure: { panic!("door was left: {:?}", _state) }
+      terminate_failure: { panic!("door was left: {:?}", _door.state()) }
       terminate_success: {
-        println!("open_count: {:?}", *open_count);
+        println!("open_count: {:?}", _door.as_ref().open_count);
         println!("goodbye")
       }
     }

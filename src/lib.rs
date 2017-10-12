@@ -34,7 +34,7 @@ macro_rules! def_machine {
       EXTENDED [
         $($ext_name:ident : $ext_type:ty $(= $ext_default:expr)*),*
       ]
-      $(state_reference: $state_reference:ident)*
+      $(self_reference: $self_reference:ident)*
       initial_state: $initial:ident $({
         $(initial_action: $initial_action:block)*
       })*
@@ -62,7 +62,7 @@ macro_rules! def_machine {
         EXTENDED [
           $($ext_name : $ext_type $(= $ext_default)*),*
         ]
-        $(state_reference: $state_reference)*
+        $(self_reference: $self_reference)*
         initial_state: $initial $({
           $(initial_action: $initial_action)*
         })*
@@ -85,12 +85,9 @@ macro_rules! def_machine {
           state:          State::initial(),
           extended_state: ExtendedState::initial()
         };
-        #[allow(unused_variables)]
-        match &mut _new.extended_state {
-          &mut ExtendedState { $(ref mut $ext_name,)*.. } => {
-            $($($initial_action)*)*
-          }
-        }
+        $(let $self_reference = _new;)*
+        $($($initial_action)*)*
+        $(_new = $self_reference;)*
         _new
       }
 
@@ -146,7 +143,7 @@ macro_rules! def_machine {
     $(($(
       $ext_name:ident : $ext_type:ty $(= $ext_default:expr)*
     ),*))*
-      $(where let $state_reference:ident = &mut self.state)*
+      $(where let $self_reference:ident = self)*
     {
       STATES [
         $(state $state:ident (
@@ -182,7 +179,7 @@ macro_rules! def_machine {
         EXTENDED [
           $($($ext_name : $ext_type $(= $ext_default)*),*)*
         ]
-        $(state_reference: $state_reference)*
+        $(self_reference: $self_reference)*
         initial_state: $initial $({
           $(initial_action: $initial_action)*
         })*
@@ -200,7 +197,7 @@ macro_rules! def_machine {
   //  @impl_fn_handle_event
   //
   ( @impl_fn_handle_event
-    machine $machine:ident {
+    machine $machine:ident $(where let $self_reference:ident = self)* {
       STATES [
         $(state $state:ident (
           $($data_name:ident : $data_type:ty $(= $data_default:expr)*),*
@@ -226,6 +223,7 @@ macro_rules! def_machine {
       // will detect the other branch as "unreachable_code"
       #[allow(unreachable_code)]
       match event.transition() {
+
         Transition::Internal (state_id) => {
           if self.state.id == state_id {
             // bring extended state variables into scope
@@ -259,22 +257,20 @@ macro_rules! def_machine {
             Err (macro_machines::HandleEventException::WrongState)
           }
         }
+
         Transition::External (source_id, target_id) => {
           if self.state.id == source_id {
             trace!("<<< Ok: {:?} => {:?}", source_id, target_id);
-            // bring extended state variables into scope
-            #[allow(unused_variables)]
-            match &mut self.extended_state {
-              &mut ExtendedState { $(ref mut $ext_name,)*.. } => {
-                match event.id {
-                  $(EventId::$event => {
-                    // only expands external actions, unreachable otherwise
-                    def_machine!{
-                      @event_action_external
-                      event $event <$source> $(=> <$target>)* $($action)*
-                    }
-                  })+
-                }
+            {
+              $(let $self_reference = &mut*self;)*
+              match event.id {
+                $(EventId::$event => {
+                  // only expands external actions, unreachable otherwise
+                  def_machine!{
+                    @event_action_external
+                    event $event <$source> $(=> <$target>)* $($action)*
+                  }
+                })+
               }
             }
             self.state = target_id.into();
@@ -286,6 +282,7 @@ macro_rules! def_machine {
             Err (macro_machines::HandleEventException::WrongState)
           }
         }
+
       }
     }
 
@@ -1810,7 +1807,7 @@ macro_rules! def_machine {
       EXTENDED [
         $($ext_name:ident : $ext_type:ty $(= $ext_default:expr)*),*
       ]
-      $(state_reference: $state_reference:ident)*
+      $(self_reference: $self_reference:ident)*
       initial_state: $initial:ident $({
         $(initial_action: $initial_action:block)*
       })*
@@ -1912,7 +1909,7 @@ macro_rules! def_machine {
 
       def_machine!{
         @impl_fn_handle_event
-        machine $machine {
+        machine $machine $(where let $self_reference = self)* {
           STATES [
             $(state $state ($($data_name : $data_type $(= $data_default)*),*))+
           ]
@@ -1929,6 +1926,34 @@ macro_rules! def_machine {
 
     } // end impl $machine
 
+    impl $(<$($type_var),+>)* AsRef <ExtendedState $(<$($type_var),+>)*>
+      for $machine $(<$($type_var),+>)*
+    where
+    $($(
+      $type_var : std::fmt::Debug,
+      $($($type_var : $type_constraint),+)*
+    ),+)*
+    {
+      #[inline]
+      fn as_ref (&self) -> &ExtendedState $(<$($type_var),+>)* {
+        &self.extended_state
+      }
+    }
+
+    impl $(<$($type_var),+>)* AsMut <ExtendedState $(<$($type_var),+>)*>
+      for $machine $(<$($type_var),+>)*
+    where
+    $($(
+      $type_var : std::fmt::Debug,
+      $($($type_var : $type_constraint),+)*
+    ),+)*
+    {
+      #[inline]
+      fn as_mut (&mut self) -> &mut ExtendedState $(<$($type_var),+>)* {
+        &mut self.extended_state
+      }
+    }
+
     impl $(<$($type_var),+>)* Drop for $machine $(<$($type_var),+>)* where
     $($(
       $type_var : std::fmt::Debug,
@@ -1938,21 +1963,16 @@ macro_rules! def_machine {
       fn drop (&mut self) {
         trace!("{}::drop", stringify!($machine));
         let _state_id = self.state.id.clone();
-        #[allow(unused_variables)]
-        match &mut self.extended_state {
-          &mut ExtendedState { $(ref mut $ext_name,)*.. } => {
-            $(let $state_reference = &mut self.state;)*
-            $(
-            if _state_id != StateId::$terminal {
-              trace!("<<< current state ({:?}) != terminal state ({:?})",
-                _state_id, StateId::$terminal);
-              $($($terminate_failure)*)*
-            } else {
-              $($($terminate_success)*)*
-            }
-            )*
-          }
+        $(let $self_reference = self;)*
+        $(
+        if _state_id != StateId::$terminal {
+          trace!("<<< current state ({:?}) != terminal state ({:?})",
+            _state_id, StateId::$terminal);
+          $($($terminate_failure)*)*
+        } else {
+          $($($terminate_success)*)*
         }
+        )*
       }
     }
 
@@ -2074,7 +2094,7 @@ macro_rules! def_machine_nodefault {
       EXTENDED [
         $($ext_name:ident : $ext_type:ty $(= $ext_default:expr)*),*
       ]
-      $(state_reference: $state_reference:ident)*
+      $(self_reference: $self_reference:ident)*
       initial_state: $initial:ident $({
         $(initial_action: $initial_action:block)*
       })*
@@ -2102,7 +2122,7 @@ macro_rules! def_machine_nodefault {
         EXTENDED [
           $($ext_name : $ext_type $(= $ext_default)*),*
         ]
-        $(state_reference: $state_reference)*
+        $(self_reference: $self_reference)*
         initial_state: $initial $({
           $(initial_action: $initial_action)*
         })*
@@ -2176,7 +2196,7 @@ macro_rules! def_machine_nodefault {
     $(($(
       $ext_name:ident : $ext_type:ty $(= $ext_default:expr)*
     ),*))*
-      $(where let $state_reference:ident = &mut self.state)*
+      $(where let $self_reference:ident = self)*
     {
       STATES [
         $(state $state:ident (
@@ -2212,7 +2232,7 @@ macro_rules! def_machine_nodefault {
         EXTENDED [
           $($($ext_name : $ext_type $(= $ext_default)*),*)*
         ]
-        $(state_reference: $state_reference)*
+        $(self_reference: $self_reference)*
         initial_state: $initial $({
           $(initial_action: $initial_action)*
         })*
