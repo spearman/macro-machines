@@ -33,11 +33,11 @@ def_machine! {
       }
     }
     terminal_state: Closed {
-      terminate_failure: { panic!("door was left: {:?}", _door.state()) }
       terminate_success: {
         println!("open_count: {:?}", _door.as_ref().open_count);
         println!("goodbye")
       }
+      terminate_failure: { panic!("door was left: {:?}", _door.state()) }
     }
   }
 }

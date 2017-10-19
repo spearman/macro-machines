@@ -39,8 +39,8 @@ macro_rules! def_machine {
         $(initial_action: $initial_action:block)*
       })*
       $(terminal_state: $terminal:ident $({
-        $(terminate_failure: $terminate_failure:block)*
         $(terminate_success: $terminate_success:block)*
+        $(terminate_failure: $terminate_failure:block)*
       })*)*
     }
 
@@ -67,8 +67,8 @@ macro_rules! def_machine {
           $(initial_action: $initial_action)*
         })*
         $(terminal_state: $terminal $({
-          $(terminate_failure: $terminate_failure)*
           $(terminate_success: $terminate_success)*
+          $(terminate_failure: $terminate_failure)*
         })*)*
       }
     }
@@ -159,8 +159,8 @@ macro_rules! def_machine {
         $(initial_action: $initial_action:block)*
       })*
       $(terminal_state: $terminal:ident $({
-        $(terminate_failure: $terminate_failure:block)*
         $(terminate_success: $terminate_success:block)*
+        $(terminate_failure: $terminate_failure:block)*
       })*)*
     }
 
@@ -184,8 +184,8 @@ macro_rules! def_machine {
           $(initial_action: $initial_action)*
         })*
         $(terminal_state: $terminal $({
-          $(terminate_failure: $terminate_failure)*
           $(terminate_success: $terminate_success)*
+          $(terminate_failure: $terminate_failure)*
         })*)*
       }
     }
@@ -377,8 +377,8 @@ macro_rules! def_machine {
         $(initial_action: $initial_action:block)*
       })*
       $(terminal_state: $terminal:ident $({
-        $(terminate_failure: $terminate_failure:block)*
         $(terminate_success: $terminate_success:block)*
+        $(terminate_failure: $terminate_failure:block)*
       })*)*
     }
 
@@ -495,8 +495,8 @@ macro_rules! def_machine {
         $(initial_action: $initial_action:block)*
       })*
       $(terminal_state: $terminal:ident $({
-        $(terminate_failure: $terminate_failure:block)*
         $(terminate_success: $terminate_success:block)*
+        $(terminate_failure: $terminate_failure:block)*
       })*)*
     }
 
@@ -1812,8 +1812,8 @@ macro_rules! def_machine {
         $(initial_action: $initial_action:block)*
       })*
       $(terminal_state: $terminal:ident $({
-        $(terminate_failure: $terminate_failure:block)*
         $(terminate_success: $terminate_success:block)*
+        $(terminate_failure: $terminate_failure:block)*
       })*)*
     }
 
@@ -2099,8 +2099,8 @@ macro_rules! def_machine_nodefault {
         $(initial_action: $initial_action:block)*
       })*
       $(terminal_state: $terminal:ident $({
-        $(terminate_failure: $terminate_failure:block)*
         $(terminate_success: $terminate_success:block)*
+        $(terminate_failure: $terminate_failure:block)*
       })*)*
     }
 
@@ -2127,8 +2127,8 @@ macro_rules! def_machine_nodefault {
           $(initial_action: $initial_action)*
         })*
         $(terminal_state: $terminal $({
-          $(terminate_failure: $terminate_failure)*
           $(terminate_success: $terminate_success)*
+          $(terminate_failure: $terminate_failure)*
         })*)*
       }
     }
@@ -2212,8 +2212,8 @@ macro_rules! def_machine_nodefault {
         $(initial_action: $initial_action:block)*
       })*
       $(terminal_state: $terminal:ident $({
-        $(terminate_failure: $terminate_failure:block)*
         $(terminate_success: $terminate_success:block)*
+        $(terminate_failure: $terminate_failure:block)*
       })*)*
     }
 
@@ -2237,8 +2237,8 @@ macro_rules! def_machine_nodefault {
           $(initial_action: $initial_action)*
         })*
         $(terminal_state: $terminal $({
-          $(terminate_failure: $terminate_failure)*
           $(terminate_success: $terminate_success)*
+          $(terminate_failure: $terminate_failure)*
         })*)*
       }
     }
