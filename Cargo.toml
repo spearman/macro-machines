@@ -18,4 +18,4 @@ unwrap = "1.*"
 # local dev dependencies
 [dev-dependencies.rs-utils]
 version = "0.0.*"
-path = "/home/spearman/rs/local/rs-utils/"
+git = "git://github.com/spearman/rs-utils"
