@@ -1,18 +1,19 @@
 [package]
 name = "macro-machines"
-version = "0.0.9"
+version = "0.1.0"
 authors = ["Shane Pearman <spearman@github.com>"]
+license = "MPL-2.0"
 
 # remote dependencies
 [dependencies]
 colored = "1.*"
 escapade = "0.0.*"
 log = "0.3.*"
-unwrap = "1.*"
 
 # remote dev dependencies
 [dev-dependencies]
 simplelog = "0.4.*"
+unwrap = "1.*"
 
 # local dev dependencies
 [dev-dependencies.rs-utils]

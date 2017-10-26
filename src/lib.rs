@@ -752,8 +752,8 @@ macro_rules! def_machine {
           }
           )*
 
-          if unwrap!{ s.chars().last() } != '(' {
-            debug_assert_eq!(unwrap!{ s.chars().last() }, ' ');
+          if s.chars().last().unwrap() != '(' {
+            debug_assert_eq!(s.chars().last().unwrap(), ' ');
             let len = s.len();
             s.truncate (len-2);
           }
@@ -775,12 +775,12 @@ macro_rules! def_machine {
           let mut action = stringify!($action_expr).to_string();
           if action.as_str() != "()" {
             use escapade::Escapable;
-            if unwrap!{ action.chars().next() } != '{' {
-              debug_assert!(unwrap!{ action.chars().last() } != '}');
+            if action.chars().next().unwrap() != '{' {
+              debug_assert!(action.chars().last().unwrap() != '}');
               action = "  { ".to_string() + action.as_str();
               action.push_str (" }");
             } else {
-              debug_assert_eq!(unwrap!{ action.chars().last() }, '}');
+              debug_assert_eq!(action.chars().last().unwrap(), '}');
               action = "  ".to_string() + action.as_str();
             }
             let action = action.escape().into_inner();
@@ -973,8 +973,8 @@ macro_rules! def_machine {
           }
           )*
 
-          if unwrap!{ s.chars().last() } != '(' {
-            debug_assert_eq!(unwrap!{ s.chars().last() }, ' ');
+          if s.chars().last().unwrap() != '(' {
+            debug_assert_eq!(s.chars().last().unwrap(), ' ');
             let len = s.len();
             s.truncate (len-2);
           }
@@ -996,12 +996,12 @@ macro_rules! def_machine {
           let mut action = stringify!($action_expr).to_string();
           if action.as_str() != "()" {
             use escapade::Escapable;
-            if unwrap!{ action.chars().next() } != '{' {
-              debug_assert!(unwrap!{ action.chars().last() } != '}');
+            if action.chars().next().unwrap() != '{' {
+              debug_assert!(action.chars().last().unwrap() != '}');
               action = "  { ".to_string() + action.as_str();
               action.push_str (" }");
             } else {
-              debug_assert_eq!(unwrap!{ action.chars().last() }, '}');
+              debug_assert_eq!(action.chars().last().unwrap(), '}');
               action = "  ".to_string() + action.as_str();
             }
             let action = action.escape().into_inner();
@@ -1133,7 +1133,7 @@ macro_rules! def_machine {
     }
 
     /*
-    if unwrap!{ s.chars().last() } == '>' {
+    if s.chars().last().unwrap() == '>' {
       let len = s.len();
       s.truncate (len-5);
     } else {
@@ -1222,8 +1222,8 @@ macro_rules! def_machine {
             ).as_str());
           })*
 
-          if unwrap!{ s.chars().last() } != '(' {
-            debug_assert_eq!(unwrap!{ s.chars().last() }, ' ');
+          if s.chars().last().unwrap() != '(' {
+            debug_assert_eq!(s.chars().last().unwrap(), ' ');
             let len = s.len();
             s.truncate (len-2);
           }
@@ -1245,12 +1245,12 @@ macro_rules! def_machine {
           let mut action = stringify!($action_expr).to_string();
           if action.as_str() != "()" {
             use escapade::Escapable;
-            if unwrap!{ action.chars().next() } != '{' {
-              debug_assert!(unwrap!{ action.chars().last() } != '}');
+            if action.chars().next().unwrap() != '{' {
+              debug_assert!(action.chars().last().unwrap() != '}');
               action = "  { ".to_string() + action.as_str();
               action.push_str (" }");
             } else {
-              debug_assert_eq!(unwrap!{ action.chars().last() }, '}');
+              debug_assert_eq!(action.chars().last().unwrap(), '}');
               action = "  ".to_string() + action.as_str();
             }
             let action = action.escape().into_inner();
@@ -1391,7 +1391,7 @@ macro_rules! def_machine {
     }
 
     /*
-    if unwrap!{ s.chars().last() } == '>' {
+    if s.chars().last().unwrap() == '>' {
       let len = s.len();
       s.truncate (len-5);
     } else {
@@ -1480,8 +1480,8 @@ macro_rules! def_machine {
             ).as_str());
           })*
 
-          if unwrap!{ s.chars().last() } != '(' {
-            debug_assert_eq!(unwrap!{ s.chars().last() }, ' ');
+          if s.chars().last().unwrap() != '(' {
+            debug_assert_eq!(s.chars().last().unwrap(), ' ');
             let len = s.len();
             s.truncate (len-2);
           }
@@ -1503,12 +1503,12 @@ macro_rules! def_machine {
           let mut action = stringify!($action_expr).to_string();
           if action.as_str() != "()" {
             use escapade::Escapable;
-            if unwrap!{ action.chars().next() } != '{' {
-              debug_assert!(unwrap!{ action.chars().last() } != '}');
+            if action.chars().next().unwrap() != '{' {
+              debug_assert!(action.chars().last().unwrap() != '}');
               action = "  { ".to_string() + action.as_str();
               action.push_str (" }");
             } else {
-              debug_assert_eq!(unwrap!{ action.chars().last() }, '}');
+              debug_assert_eq!(action.chars().last().unwrap(), '}');
               action = "  ".to_string() + action.as_str();
             }
             let action = action.escape().into_inner();
@@ -1679,8 +1679,8 @@ macro_rules! def_machine {
       ).as_str());
     })*
 
-    if unwrap!{ s.chars().last() } != '(' {
-      debug_assert_eq!(unwrap!{ s.chars().last() }, ' ');
+    if s.chars().last().unwrap() != '(' {
+      debug_assert_eq!(s.chars().last().unwrap(), ' ');
       let len = s.len();
       s.truncate (len-2);
     }
