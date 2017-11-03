@@ -394,6 +394,8 @@ macro_rules! def_machine {
       $machine$(::<$($type_var),+>)*::_dotfile (true, false)
     }
 
+    /// &#9888;: this function constructs default values from default expressions and
+    /// pretty prints them.
     #[inline]
     pub fn dotfile_pretty_defaults() -> String {
       $machine$(::<$($type_var),+>)*::_dotfile (false, true)
@@ -650,9 +652,17 @@ macro_rules! def_machine {
       }
       _extended_fields.push (stringify!($ext_name).to_string());
       _extended_types.push (stringify!($ext_type).to_string());
-      let default_val : $ext_type
-        = def_machine!(@expr_default $($ext_default)*);
-      _extended_defaults.push (format!("{:?}", default_val));
+      let default_expr = {
+        let default_expr = stringify!($($ext_default)*);
+        if !default_expr.is_empty() {
+          default_expr.to_string()
+        } else {
+          stringify!(Default::default()).chars().filter (
+            |c| !c.is_whitespace()
+          ).collect()
+        }
+      };
+      _extended_defaults.push (default_expr);
     })*
 
     debug_assert_eq!(_extended_fields.len(), _extended_types.len());
@@ -1066,9 +1076,17 @@ macro_rules! def_machine {
       }
       _data_fields.push (stringify!($data_name).to_string());
       _data_types.push (stringify!($data_type).to_string());
-      let default_val : $data_type
-        = def_machine!(@expr_default $($data_default)*);
-      _data_defaults.push (format!("{:?}", default_val));
+      let default_expr = {
+        let default_expr = stringify!($($data_default)*);
+        if !default_expr.is_empty() {
+          default_expr.to_string()
+        } else {
+          stringify!(Default::default()).chars().filter (
+            |c| !c.is_whitespace()
+          ).collect()
+        }
+      };
+      _data_defaults.push (default_expr);
     })*
 
     debug_assert_eq!(_data_fields.len(), _data_types.len());
@@ -1265,12 +1283,10 @@ macro_rules! def_machine {
 
     })+
     // end internal transitions
-    if mono_font {
-      s.push_str ("<BR ALIGN=\"LEFT\"/></FONT>");
-    }
     */
+
     if _mono_font {
-      s.push_str ("</FONT><BR/>");
+      s.push_str ("<BR ALIGN=\"LEFT\"/></FONT>");
     }
     s.push_str (">]\n");
     s
@@ -1613,7 +1629,7 @@ macro_rules! def_machine {
     }
 
     if _mono_font {
-      s.push_str ("</FONT><BR ALIGN=\"LEFT\"/>");
+      s.push_str ("<BR ALIGN=\"LEFT\"/></FONT>");
     }
     s.push_str (">]\n");
     s
