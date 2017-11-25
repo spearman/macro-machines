@@ -48,7 +48,7 @@ pub const LOG_LEVEL_FILTER
 fn main () {
   use std::io::Write;
   use colored::Colorize;
-  let example_name = &rs_utils::process::FILE_NAME;
+  let example_name = &rs_utils::process::EXE_FILE_NAME;
   println!("{}", format!("{} main...", **example_name)
     .green().bold());
 
