@@ -407,13 +407,23 @@ macro_rules! def_machine {
       s.push_str (def_machine!(@fn_dotfile_begin).as_str());
 
       // begin subgraph
-      s.push_str (def_machine!(
-        @fn_dotfile_subgraph_begin
-        machine $machine $(<$($type_var),+>)* {
-          EVENTS [ $(event $event <$source> $(=> <$target>)* $($action)*)+ ]
-          EXTENDED   [ $($ext_name : $ext_type $(= $ext_default)*),* ]
-        }
-      ).as_str());
+      if !hide_defaults {
+        s.push_str (def_machine!(
+          @fn_dotfile_subgraph_begin
+          machine $machine $(<$($type_var),+>)* {
+            EVENTS [ $(event $event <$source> $(=> <$target>)* $($action)*)+ ]
+            EXTENDED   [ $($ext_name : $ext_type $(= $ext_default)*),* ]
+          }
+        ).as_str());
+      } else {
+        s.push_str (def_machine!(
+          @fn_dotfile_subgraph_begin_hide_defaults
+          machine $machine $(<$($type_var),+>)* {
+            EVENTS [ $(event $event <$source> $(=> <$target>)* $($action)*)+ ]
+            EXTENDED   [ $($ext_name : $ext_type),* ]
+          }
+        ).as_str());
+      }
 
       // nodes
       s.push_str (def_machine!(@fn_dotfile_node_initial).as_str());
@@ -439,7 +449,7 @@ macro_rules! def_machine {
         $(
         s.push_str (def_machine!(
           @fn_dotfile_node_hide_defaults
-          state $state ($($data_name : $data_type $(= $data_default)*),*)
+          state $state ($($data_name : $data_type),*)
           EVENTS $events_tt
         ).as_str());
         )+
@@ -525,13 +535,24 @@ macro_rules! def_machine {
       s.push_str (def_machine!(@fn_dotfile_begin).as_str());
 
       // begin subgraph
-      s.push_str (def_machine!(
-        @fn_dotfile_subgraph_begin_nodefault
-        machine $machine $(<$($type_var),+>)* {
-          EVENTS [ $(event $event <$source> $(=> <$target>)* $($action)*)+ ]
-          EXTENDED   [ $($ext_name : $ext_type $(= $ext_default)*),* ]
-        }
-      ).as_str());
+      if !hide_defaults {
+        s.push_str (def_machine!(
+          @fn_dotfile_subgraph_begin_nodefault
+          machine $machine $(<$($type_var),+>)* {
+            EVENTS [ $(event $event <$source> $(=> <$target>)* $($action)*)+ ]
+            EXTENDED   [ $($ext_name : $ext_type $(= $ext_default)*),* ]
+          }
+        ).as_str());
+      } else {
+        // NB: same as regular dotfile
+        s.push_str (def_machine!(
+          @fn_dotfile_subgraph_begin_hide_defaults
+          machine $machine $(<$($type_var),+>)* {
+            EVENTS [ $(event $event <$source> $(=> <$target>)* $($action)*)+ ]
+            EXTENDED   [ $($ext_name : $ext_type),* ]
+          }
+        ).as_str());
+      }
 
       // nodes
       s.push_str (def_machine!(@fn_dotfile_node_initial).as_str());
@@ -557,7 +578,7 @@ macro_rules! def_machine {
         $(
         s.push_str (def_machine!(
           @fn_dotfile_node_hide_defaults
-          state $state ($($data_name : $data_type $(= $data_default)*),*)
+          state $state ($($data_name : $data_type),*)
           EVENTS $events_tt
         ).as_str());
         )+
@@ -819,6 +840,193 @@ macro_rules! def_machine {
   }}; // end @fn_dotfile_subgraph_begin
 
   //
+  //  @fn_dotfile_subgraph_begin_hide_defaults
+  //
+  ( @fn_dotfile_subgraph_begin_hide_defaults
+    machine $machine:ident $(<$($type_var:ident),+>)* {
+      EVENTS [
+        $(event $event:ident <$source:ident> $(=> <$target:ident>)*
+          $($action:block)*
+        )+
+      ]
+      EXTENDED [
+        $($ext_name:ident : $ext_type:ty),*
+      ]
+    }
+
+  ) => {{
+    use escapade::Escapable;
+    let mut s = String::new();
+    s.push_str (format!(
+      "  subgraph cluster_{} {{\n", stringify!($machine)).as_str());
+    let title_string = {
+      let mut s = String::new();
+      s.push_str (stringify!($machine));
+      $(
+      s.push_str (format!("<{}>",
+        stringify!($($type_var),+)).as_str());
+      )*
+      s
+    };
+    s.push_str (
+      format!("    label=<{}", title_string.escape().into_inner()).as_str());
+
+    let mut _mono_font         = false;
+    let mut _extended_fields   = Vec::<String>::new();
+    let mut _extended_types    = Vec::<String>::new();
+
+    // NOTE: within the mono font block leading whitespace in the source
+    // is counted as part of the layout so we don't indent these lines
+    $({
+      if !_mono_font {
+        s.push_str ("<FONT FACE=\"Mono\"><BR/><BR/>\n");
+        _mono_font = true;
+      }
+      _extended_fields.push (stringify!($ext_name).to_string());
+      _extended_types.push (stringify!($ext_type).to_string());
+    })*
+
+    debug_assert_eq!(_extended_fields.len(), _extended_types.len());
+
+    //
+    //  for each extended state field, print a line
+    //
+    // TODO: we are manually aligning the columns of the field name and field
+    // type, is there a better way ? (record node, html table, format width?)
+    if !_extended_types.is_empty() {
+      debug_assert!(_mono_font);
+
+      let mut extended_string = String::new();
+      let separator = ",<BR ALIGN=\"LEFT\"/>\n";
+
+      let longest_fieldname = _extended_fields.iter().fold (0,
+        |longest, ref fieldname| {
+          let len = fieldname.len();
+          if longest < len {
+            len
+          } else {
+            longest
+          }
+        }
+      );
+
+      for (i,f) in _extended_fields.iter().enumerate() {
+        use escapade::Escapable;
+
+        let spacer1 : String = std::iter::repeat (' ')
+          .take(longest_fieldname - f.len())
+          .collect();
+
+        extended_string.push_str (
+          format!("{}{} : {}",
+            f, spacer1, _extended_types[i])
+          .escape().into_inner().as_str()
+        );
+        extended_string.push_str (format!("{}", separator).as_str());
+      }
+
+      let len = extended_string.len();
+      extended_string.truncate (len - separator.len());
+      s.push_str (format!("{}", extended_string).as_str());
+    }
+
+    // TODO
+    /*
+    // internal state transitions
+    let mut _extended_once = false;
+    $({
+      match EventId::$event.transition() {
+
+        Transition::Internal => {
+          if !_extended_once {
+            s.push_str (
+              "<BR ALIGN=\"LEFT\"/></FONT>\
+               <BR ALIGN=\"LEFT\"/>\
+               <FONT FACE=\"Sans Italic\">");
+            _extended_once = true;
+          } else {
+            s.push_str ("<BR ALIGN=\"LEFT\"/></FONT>");
+            s.push_str ("<BR ALIGN=\"LEFT\"/>\
+              <FONT FACE=\"Sans Italic\">");
+          }
+          s.push_str (format!("{} </FONT><FONT FACE=\"Mono\">(",
+            stringify!($event)).as_str());
+
+          $(
+          {
+            use escapade::Escapable;
+            let default_val : $param_type = def_machine!{
+              @expr_default $($param_default)*
+            };
+            s.push_str (
+              format!("{} : {} = {}, ",
+                stringify!($param_name),
+                stringify!($param_type).escape().into_inner(),
+                format!("{:?}", default_val).escape().into_inner()
+            ).as_str());
+          }
+          )*
+
+          if s.chars().last().unwrap() != '(' {
+            debug_assert_eq!(s.chars().last().unwrap(), ' ');
+            let len = s.len();
+            s.truncate (len-2);
+          }
+          s.push_str (")<BR ALIGN=\"LEFT\"/>");
+
+          $(
+          let mut guard = stringify!($guard_expr).to_string();
+          if guard.as_str() != "true" {
+            use escapade::Escapable;
+            guard = "  [ ".to_string() + guard.as_str();
+            guard.push (' ');
+            guard.push (']');
+            let guard = guard.escape().into_inner();
+            s.push_str (format!("{}<BR ALIGN=\"LEFT\"/>", guard).as_str());
+          }
+          )*
+
+          $(
+          let mut action = stringify!($action_expr).to_string();
+          if action.as_str() != "()" {
+            use escapade::Escapable;
+            if action.chars().next().unwrap() != '{' {
+              debug_assert!(action.chars().last().unwrap() != '}');
+              action = "  { ".to_string() + action.as_str();
+              action.push_str (" }");
+            } else {
+              debug_assert_eq!(action.chars().last().unwrap(), '}');
+              action = "  ".to_string() + action.as_str();
+            }
+            let action = action.escape().into_inner();
+            s.push_str (format!("{}", action).as_str());
+          }
+          )*
+
+        }
+        _ => ()
+
+      }
+
+    })+
+    // end internal state transitions
+    */
+
+    s.push_str ("<BR ALIGN=\"LEFT\"/>");
+    if !_extended_types.is_empty() {
+      s.push_str ("\n      ");
+    }
+    if _mono_font {
+      s.push_str ("</FONT><BR/>");
+    }
+    s.push_str (">\
+      \n    shape=record\
+      \n    style=rounded\
+      \n    fontname=\"Sans Bold Italic\"\n");
+    s
+  }}; // end @fn_dotfile_subgraph_begin
+
+  //
   //  @fn_dotfile_subgraph_begin_nodefault
   //
   //  Expressions without a provided default are replaced with an empty string
@@ -866,13 +1074,7 @@ macro_rules! def_machine {
       }
       _extended_fields.push (stringify!($ext_name).to_string());
       _extended_types.push (stringify!($ext_type).to_string());
-      let default_val : Option <$ext_type>
-        = def_machine!(@expr_option $($ext_default)*);
-      if let Some (default_val) = default_val {
-        _extended_defaults.push (format!("{:?}", default_val));
-      } else {
-        _extended_defaults.push (String::new());
-      }
+      _extended_defaults.push (stringify!($($ext_default)*).to_string());
     })*
 
     debug_assert_eq!(_extended_fields.len(), _extended_types.len());
@@ -1552,7 +1754,7 @@ macro_rules! def_machine {
   //
   ( @fn_dotfile_node_hide_defaults
     state $state:ident (
-      $($data_name:ident : $data_type:ty $(= $data_default:expr)*),*
+      $($data_name:ident : $data_type:ty),*
     )
     EVENTS [
       $(event $event:ident <$source:ident> $(=> <$target:ident>)*
@@ -2655,13 +2857,23 @@ macro_rules! def_machine_debug {
       s.push_str (def_machine_debug!(@fn_dotfile_begin).as_str());
 
       // begin subgraph
-      s.push_str (def_machine_debug!(
-        @fn_dotfile_subgraph_begin
-        machine $machine $(<$($type_var),+>)* {
-          EVENTS [ $(event $event <$source> $(=> <$target>)* $($action)*)+ ]
-          EXTENDED   [ $($ext_name : $ext_type $(= $ext_default)*),* ]
-        }
-      ).as_str());
+      if !hide_defaults {
+        s.push_str (def_machine_debug!(
+          @fn_dotfile_subgraph_begin
+          machine $machine $(<$($type_var),+>)* {
+            EVENTS [ $(event $event <$source> $(=> <$target>)* $($action)*)+ ]
+            EXTENDED   [ $($ext_name : $ext_type $(= $ext_default)*),* ]
+          }
+        ).as_str());
+      } else {
+        s.push_str (def_machine_debug!(
+          @fn_dotfile_subgraph_begin_hide_defaults
+          machine $machine $(<$($type_var),+>)* {
+            EVENTS [ $(event $event <$source> $(=> <$target>)* $($action)*)+ ]
+            EXTENDED   [ $($ext_name : $ext_type),* ]
+          }
+        ).as_str());
+      }
 
       // nodes
       s.push_str (def_machine_debug!(@fn_dotfile_node_initial).as_str());
@@ -2687,7 +2899,7 @@ macro_rules! def_machine_debug {
         $(
         s.push_str (def_machine_debug!(
           @fn_dotfile_node_hide_defaults
-          state $state ($($data_name : $data_type $(= $data_default)*),*)
+          state $state ($($data_name : $data_type),*)
           EVENTS $events_tt
         ).as_str());
         )+
@@ -2773,13 +2985,24 @@ macro_rules! def_machine_debug {
       s.push_str (def_machine_debug!(@fn_dotfile_begin).as_str());
 
       // begin subgraph
-      s.push_str (def_machine_debug!(
-        @fn_dotfile_subgraph_begin_nodefault_debug
-        machine $machine $(<$($type_var),+>)* {
-          EVENTS [ $(event $event <$source> $(=> <$target>)* $($action)*)+ ]
-          EXTENDED   [ $($ext_name : $ext_type $(= $ext_default)*),* ]
-        }
-      ).as_str());
+      if !hide_defaults {
+        s.push_str (def_machine_debug!(
+          @fn_dotfile_subgraph_begin_nodefault
+          machine $machine $(<$($type_var),+>)* {
+            EVENTS [ $(event $event <$source> $(=> <$target>)* $($action)*)+ ]
+            EXTENDED   [ $($ext_name : $ext_type $(= $ext_default)*),* ]
+          }
+        ).as_str());
+      } else {
+        // NB: same as regular dotfile
+        s.push_str (def_machine_debug!(
+          @fn_dotfile_subgraph_begin_hide_defaults
+          machine $machine $(<$($type_var),+>)* {
+            EVENTS [ $(event $event <$source> $(=> <$target>)* $($action)*)+ ]
+            EXTENDED   [ $($ext_name : $ext_type),* ]
+          }
+        ).as_str());
+      }
 
       // nodes
       s.push_str (def_machine_debug!(@fn_dotfile_node_initial).as_str());
@@ -2805,7 +3028,7 @@ macro_rules! def_machine_debug {
         $(
         s.push_str (def_machine_debug!(
           @fn_dotfile_node_hide_defaults
-          state $state ($($data_name : $data_type $(= $data_default)*),*)
+          state $state ($($data_name : $data_type),*)
           EVENTS $events_tt
         ).as_str());
         )+
@@ -3067,11 +3290,198 @@ macro_rules! def_machine_debug {
   }}; // end @fn_dotfile_subgraph_begin
 
   //
-  //  @fn_dotfile_subgraph_begin_nodefault_debug
+  //  @fn_dotfile_subgraph_begin_hide_defaults
+  //
+  ( @fn_dotfile_subgraph_begin_hide_defaults
+    machine $machine:ident $(<$($type_var:ident),+>)* {
+      EVENTS [
+        $(event $event:ident <$source:ident> $(=> <$target:ident>)*
+          $($action:block)*
+        )+
+      ]
+      EXTENDED [
+        $($ext_name:ident : $ext_type:ty),*
+      ]
+    }
+
+  ) => {{
+    use escapade::Escapable;
+    let mut s = String::new();
+    s.push_str (format!(
+      "  subgraph cluster_{} {{\n", stringify!($machine)).as_str());
+    let title_string = {
+      let mut s = String::new();
+      s.push_str (stringify!($machine));
+      $(
+      s.push_str (format!("<{}>",
+        stringify!($($type_var),+)).as_str());
+      )*
+      s
+    };
+    s.push_str (
+      format!("    label=<{}", title_string.escape().into_inner()).as_str());
+
+    let mut _mono_font         = false;
+    let mut _extended_fields   = Vec::<String>::new();
+    let mut _extended_types    = Vec::<String>::new();
+
+    // NOTE: within the mono font block leading whitespace in the source
+    // is counted as part of the layout so we don't indent these lines
+    $({
+      if !_mono_font {
+        s.push_str ("<FONT FACE=\"Mono\"><BR/><BR/>\n");
+        _mono_font = true;
+      }
+      _extended_fields.push (stringify!($ext_name).to_string());
+      _extended_types.push (stringify!($ext_type).to_string());
+    })*
+
+    debug_assert_eq!(_extended_fields.len(), _extended_types.len());
+
+    //
+    //  for each extended state field, print a line
+    //
+    // TODO: we are manually aligning the columns of the field name and field
+    // type, is there a better way ? (record node, html table, format width?)
+    if !_extended_types.is_empty() {
+      debug_assert!(_mono_font);
+
+      let mut extended_string = String::new();
+      let separator = ",<BR ALIGN=\"LEFT\"/>\n";
+
+      let longest_fieldname = _extended_fields.iter().fold (0,
+        |longest, ref fieldname| {
+          let len = fieldname.len();
+          if longest < len {
+            len
+          } else {
+            longest
+          }
+        }
+      );
+
+      for (i,f) in _extended_fields.iter().enumerate() {
+        use escapade::Escapable;
+
+        let spacer1 : String = std::iter::repeat (' ')
+          .take(longest_fieldname - f.len())
+          .collect();
+
+        extended_string.push_str (
+          format!("{}{} : {}",
+            f, spacer1, _extended_types[i])
+          .escape().into_inner().as_str()
+        );
+        extended_string.push_str (format!("{}", separator).as_str());
+      }
+
+      let len = extended_string.len();
+      extended_string.truncate (len - separator.len());
+      s.push_str (format!("{}", extended_string).as_str());
+    }
+
+    // TODO
+    /*
+    // internal state transitions
+    let mut _extended_once = false;
+    $({
+      match EventId::$event.transition() {
+
+        Transition::Internal => {
+          if !_extended_once {
+            s.push_str (
+              "<BR ALIGN=\"LEFT\"/></FONT>\
+               <BR ALIGN=\"LEFT\"/>\
+               <FONT FACE=\"Sans Italic\">");
+            _extended_once = true;
+          } else {
+            s.push_str ("<BR ALIGN=\"LEFT\"/></FONT>");
+            s.push_str ("<BR ALIGN=\"LEFT\"/>\
+              <FONT FACE=\"Sans Italic\">");
+          }
+          s.push_str (format!("{} </FONT><FONT FACE=\"Mono\">(",
+            stringify!($event)).as_str());
+
+          $(
+          {
+            use escapade::Escapable;
+            let default_val : $param_type = def_machine_debug!{
+              @expr_default $($param_default)*
+            };
+            s.push_str (
+              format!("{} : {} = {}, ",
+                stringify!($param_name),
+                stringify!($param_type).escape().into_inner(),
+                format!("{:?}", default_val).escape().into_inner()
+            ).as_str());
+          }
+          )*
+
+          if s.chars().last().unwrap() != '(' {
+            debug_assert_eq!(s.chars().last().unwrap(), ' ');
+            let len = s.len();
+            s.truncate (len-2);
+          }
+          s.push_str (")<BR ALIGN=\"LEFT\"/>");
+
+          $(
+          let mut guard = stringify!($guard_expr).to_string();
+          if guard.as_str() != "true" {
+            use escapade::Escapable;
+            guard = "  [ ".to_string() + guard.as_str();
+            guard.push (' ');
+            guard.push (']');
+            let guard = guard.escape().into_inner();
+            s.push_str (format!("{}<BR ALIGN=\"LEFT\"/>", guard).as_str());
+          }
+          )*
+
+          $(
+          let mut action = stringify!($action_expr).to_string();
+          if action.as_str() != "()" {
+            use escapade::Escapable;
+            if action.chars().next().unwrap() != '{' {
+              debug_assert!(action.chars().last().unwrap() != '}');
+              action = "  { ".to_string() + action.as_str();
+              action.push_str (" }");
+            } else {
+              debug_assert_eq!(action.chars().last().unwrap(), '}');
+              action = "  ".to_string() + action.as_str();
+            }
+            let action = action.escape().into_inner();
+            s.push_str (format!("{}", action).as_str());
+          }
+          )*
+
+        }
+        _ => ()
+
+      }
+
+    })+
+    // end internal state transitions
+    */
+
+    s.push_str ("<BR ALIGN=\"LEFT\"/>");
+    if !_extended_types.is_empty() {
+      s.push_str ("\n      ");
+    }
+    if _mono_font {
+      s.push_str ("</FONT><BR/>");
+    }
+    s.push_str (">\
+      \n    shape=record\
+      \n    style=rounded\
+      \n    fontname=\"Sans Bold Italic\"\n");
+    s
+  }}; // end @fn_dotfile_subgraph_begin_hide_defaults
+
+  //
+  //  @fn_dotfile_subgraph_begin_nodefault
   //
   //  Expressions without a provided default are replaced with an empty string
   //  instead of a `Default::default()` instance.
-  ( @fn_dotfile_subgraph_begin_nodefault_debug
+  ( @fn_dotfile_subgraph_begin_nodefault
     machine $machine:ident $(<$($type_var:ident),+>)* {
       EVENTS [
         $(event $event:ident <$source:ident> $(=> <$target:ident>)*
@@ -3114,13 +3524,7 @@ macro_rules! def_machine_debug {
       }
       _extended_fields.push (stringify!($ext_name).to_string());
       _extended_types.push (stringify!($ext_type).to_string());
-      let default_val : Option <$ext_type>
-        = def_machine_debug!(@expr_option $($ext_default)*);
-      if let Some (default_val) = default_val {
-        _extended_defaults.push (format!("{:?}", default_val));
-      } else {
-        _extended_defaults.push (String::new());
-      }
+      _extended_defaults.push (stringify!($ext_type).to_string());
     })*
 
     debug_assert_eq!(_extended_fields.len(), _extended_types.len());
@@ -3285,7 +3689,7 @@ macro_rules! def_machine_debug {
       \n    style=rounded\
       \n    fontname=\"Sans Bold Italic\"\n");
     s
-  }}; // end @fn_dotfile_subgraph_begin
+  }}; // end @fn_dotfile_subgraph_begin_nodefault
 
   //
   //  @fn_dotfile_node
@@ -3800,7 +4204,7 @@ macro_rules! def_machine_debug {
   //
   ( @fn_dotfile_node_hide_defaults
     state $state:ident (
-      $($data_name:ident : $data_type:ty $(= $data_default:expr)*),*
+      $($data_name:ident : $data_type:ty),*
     )
     EVENTS [
       $(event $event:ident <$source:ident> $(=> <$target:ident>)*
