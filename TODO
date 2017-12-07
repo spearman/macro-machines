@@ -1,0 +1,4 @@
+- the dotfile_hide_defaults method currently only hides defaults for local
+  state, not extended state
+- if possible, refactor dotfile generation functions to not rely on macros
+- events with parameters

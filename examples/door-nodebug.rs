@@ -11,7 +11,7 @@ extern crate rs_utils;
 
 #[macro_use] extern crate macro_machines;
 
-def_machine_debug! {
+def_machine! {
   Door (open_count : u64) where let _door = self {
     STATES [
       state Closed (knock_count : u64, code : u64 = 12345)
@@ -37,7 +37,7 @@ def_machine_debug! {
         println!("open_count: {:?}", _door.as_ref().open_count);
         println!("goodbye")
       }
-      terminate_failure: { panic!("door was left: {:?}", _door.state()) }
+      terminate_failure: { panic!("door was left: {:?}", _door.state().id()) }
     }
   }
 }
@@ -71,19 +71,12 @@ fn main () {
   std::mem::drop (f);
 
   let mut door = Door::initial();
-  println!("door: {:?}", door);
-
   let e = EventId::Knock.into();
   unwrap!(door.handle_event (e));
-  println!("door: {:?}", door);
-
   let e = EventId::Open.into();
   unwrap!(door.handle_event (e));
-  println!("door: {:?}", door);
-
   let e = EventId::Close.into();
   unwrap!(door.handle_event (e));
-  println!("door: {:?}", door);
 
   println!("{}", format!("...{} main", **example_name)
     .green().bold());

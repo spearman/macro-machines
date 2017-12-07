@@ -11,7 +11,7 @@ extern crate rs_utils;
 
 #[macro_use] extern crate macro_machines;
 
-def_machine!{
+def_machine_debug!{
   machine M {
     STATES [
       state S ()
