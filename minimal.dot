@@ -1,0 +1,17 @@
+digraph {
+  rankdir=LR
+  node [shape=record, style=rounded, fontname="Sans Bold"]
+  edge [fontname="Sans"]
+  subgraph cluster_M {
+    label=<M<BR ALIGN="LEFT"/>>
+    shape=record
+    style=rounded
+    fontname="Sans Bold Italic"
+    INITIAL [label="", shape=circle, width=0.2,
+      style=filled, fillcolor=black]
+    S [label=<<B>S</B>>]
+    T [label=<<B>T</B>>]
+    INITIAL -> S
+    S -> T [label=<<FONT FACE="Sans Italic">A</FONT>>]
+  }
+}
