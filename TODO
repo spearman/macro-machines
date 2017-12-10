@@ -1,2 +1,3 @@
 - if possible, refactor dotfile generation functions to not rely on macros
 - events with parameters
+- machine trait
