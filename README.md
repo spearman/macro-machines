@@ -1,4 +1,4 @@
-# `macro-machines`
+# `State machine macros with logging and graphviz dotfile output.macro-machines`
 
 > State machine macros with logging and graphviz dotfile output.
 
@@ -44,12 +44,8 @@ fn main () {
   use macro_machines::*;
 
   let mut m = M::initial();
-  println!("m: {:?}", m);
-
   let e = EventId::A.into();
   m.handle_event (e).unwrap();
-  println!("m: {:?}", m);
-
   let e = EventId::A.into();
   assert_eq!(m.handle_event (e), Err (HandleEventException::WrongState));
 }
@@ -61,7 +57,7 @@ Generate a dotfile and write to file:
   use std::io::Write;
   let mut f = std::fs::File::create ("minimal.dot").unwrap();
   f.write_all (M::dotfile().as_bytes()).unwrap();
-  std::mem::drop (f);
+  drop (f);
 ```
 
 Converted to `png` with `$ dot -Tpng minimal.dot > minimal.png`:
