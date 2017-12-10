@@ -1,6 +1,6 @@
-# `State machine macros with logging and graphviz dotfile output.macro-machines`
+# `macro-machines`
 
-> State machine macros with logging and graphviz dotfile output.
+> State machine macros with logging and graphviz dotfile output
 
 ## Usage
 
