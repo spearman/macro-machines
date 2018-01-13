@@ -60,6 +60,6 @@ Generate a dotfile and write to file:
   drop (f);
 ```
 
-Converted to `png` with `$ dot -Tpng minimal.dot > minimal.png`:
+Rendered as PNG with `$ dot -Tpng minimal.dot > minimal.png`:
 
 ![](minimal.png)

@@ -8,7 +8,7 @@ license = "MPL-2.0"
 [dependencies]
 colored = "1.*"
 escapade = "0.0.*"
-log = "0.3.*"
+log = "0.4.*"
 
 # remote dev dependencies
 [dev-dependencies]
@@ -18,4 +18,4 @@ unwrap = "1.*"
 # local dev dependencies
 [dev-dependencies.rs-utils]
 version = "0.0.*"
-git = "git://github.com/spearman/rs-utils"
+git = "git://github.com/spearman/rs-utils.git"
