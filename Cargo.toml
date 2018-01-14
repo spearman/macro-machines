@@ -4,18 +4,12 @@ version = "0.2.2"
 authors = ["Shane Pearman <spearman@github.com>"]
 license = "MPL-2.0"
 
-# remote dependencies
 [dependencies]
-colored = "1.*"
+# temporary local dependency for lazy_static version bump
+colored = { version = "1.*", git = "git://github.com/spearman/colored.git", branch = "bump-lazy_static" }
 escapade = "0.0.*"
 log = "0.4.*"
 
-# remote dev dependencies
 [dev-dependencies]
 simplelog = "0.4.*"
 unwrap = "1.*"
-
-# local dev dependencies
-[dev-dependencies.rs-utils]
-version = "0.0.*"
-git = "git://github.com/spearman/rs-utils.git"

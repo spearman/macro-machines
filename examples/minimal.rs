@@ -7,8 +7,6 @@ extern crate simplelog;
 extern crate colored;
 extern crate escapade;
 
-extern crate rs_utils;
-
 #[macro_use] extern crate macro_machines;
 
 def_machine_debug!{
@@ -32,8 +30,9 @@ fn main () {
   use std::io::Write;
   use colored::Colorize;
   use macro_machines::*;
-  let example_name = &rs_utils::process::EXE_FILE_NAME;
-  println!("{}", format!("{} main...", **example_name)
+  let example_name = std::path::PathBuf::from (std::env::args().next().unwrap())
+    .file_name().unwrap().to_str().unwrap().to_string();
+  println!("{}", format!("{} main...", example_name)
     .green().bold());
 
   unwrap!{
@@ -44,7 +43,7 @@ fn main () {
 
   M::report();
 
-  let dotfile_name = format!("{}.dot", **example_name);
+  let dotfile_name = format!("{}.dot", example_name);
   let mut f = unwrap!{ std::fs::File::create (dotfile_name) };
   unwrap!{ f.write_all (M::dotfile().as_bytes()) };
   std::mem::drop (f);
@@ -59,6 +58,6 @@ fn main () {
   let e = EventId::A.into();
   assert_eq!(m.handle_event (e), Err (HandleEventException::WrongState));
 
-  println!("{}", format!("...{} main", **example_name)
+  println!("{}", format!("...{} main", example_name)
     .green().bold());
 }
