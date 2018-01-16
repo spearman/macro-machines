@@ -5,8 +5,8 @@ authors = ["Shane Pearman <spearman@github.com>"]
 license = "MPL-2.0"
 
 [dependencies]
-# temporary local dependency for lazy_static version bump
-colored = { version = "1.*", git = "git://github.com/spearman/colored.git", branch = "bump-lazy_static" }
+# unpublished dependency version bump
+colored = { version = "1.*", git = "git://github.com/mackwic/colored.git" }
 escapade = "0.0.*"
 log = "0.4.*"
 
