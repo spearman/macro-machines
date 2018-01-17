@@ -2,12 +2,15 @@
 
 > State machine macros with logging and graphviz dotfile output
 
+[Documentation](https://spearman.github.io/macro-machines/macro_machines/index.html)
+
 ## Usage
 
 Using the macros defined by this library requires the additional external
 dependencies:
 
 ```toml
+[dependencies]
 log = "0.3.*"
 escapade = "0.0.*"
 ```
