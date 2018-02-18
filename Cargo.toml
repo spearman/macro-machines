@@ -11,5 +11,5 @@ escapade = "0.0.*"
 log = "0.4.*"
 
 [dev-dependencies]
-simplelog = "0.4.*"
+simplelog = "0.5.*"
 unwrap = "1.*"
