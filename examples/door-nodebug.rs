@@ -40,8 +40,8 @@ def_machine! {
   }
 }
 
-pub const LOG_LEVEL_FILTER
-  : simplelog::LogLevelFilter = simplelog::LogLevelFilter::Trace;
+pub const LOG_LEVEL_FILTER : simplelog::LevelFilter
+  = simplelog::LevelFilter::Trace;
 
 fn main () {
   use std::io::Write;

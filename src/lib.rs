@@ -214,7 +214,7 @@ macro_rules! def_machine {
   ) => {
 
     pub fn handle_event (&mut self, event : Event)
-      -> Result <(), macro_machines::HandleEventException>
+      -> Result <(), $crate::HandleEventException>
     {
       // if only one kind of transition exists the following match expression
       // will detect the other branch as "unreachable_code"
@@ -251,7 +251,7 @@ macro_rules! def_machine {
             trace!("<<< Err: internal transition: \
               current state ({:?}) != state ({:?})",
                 self.state.id, state_id);
-            Err (macro_machines::HandleEventException::WrongState)
+            Err ($crate::HandleEventException::WrongState)
           }
         }
 
@@ -276,7 +276,7 @@ macro_rules! def_machine {
             trace!("<<< Err: external transition: \
               current state ({:?}) != source state ({:?})",
                 self.state.id, source_id);
-            Err (macro_machines::HandleEventException::WrongState)
+            Err ($crate::HandleEventException::WrongState)
           }
         }
 
@@ -640,7 +640,7 @@ macro_rules! def_machine {
     }
 
   ) => {{
-    use escapade::Escapable;
+    use ::escapade::Escapable;
     let mut s = String::new();
     s.push_str (format!(
       "  subgraph cluster_{} {{\n", stringify!($machine)).as_str());
@@ -721,12 +721,12 @@ macro_rules! def_machine {
       );
 
       for (i,f) in _extended_fields.iter().enumerate() {
-        use escapade::Escapable;
+        use ::escapade::Escapable;
 
-        let spacer1 : String = std::iter::repeat (' ')
+        let spacer1 : String = ::std::iter::repeat (' ')
           .take(longest_fieldname - f.len())
           .collect();
-        let spacer2 : String = std::iter::repeat (' ')
+        let spacer2 : String = ::std::iter::repeat (' ')
           .take (longest_typename - _extended_types[i].len())
           .collect();
 
@@ -767,7 +767,7 @@ macro_rules! def_machine {
 
           $(
           {
-            use escapade::Escapable;
+            use ::escapade::Escapable;
             let default_val : $param_type = def_machine!{
               @expr_default $($param_default)*
             };
@@ -790,7 +790,7 @@ macro_rules! def_machine {
           $(
           let mut guard = stringify!($guard_expr).to_string();
           if guard.as_str() != "true" {
-            use escapade::Escapable;
+            use ::escapade::Escapable;
             guard = "  [ ".to_string() + guard.as_str();
             guard.push (' ');
             guard.push (']');
@@ -802,7 +802,7 @@ macro_rules! def_machine {
           $(
           let mut action = stringify!($action_expr).to_string();
           if action.as_str() != "()" {
-            use escapade::Escapable;
+            use ::escapade::Escapable;
             if action.chars().next().unwrap() != '{' {
               debug_assert!(action.chars().last().unwrap() != '}');
               action = "  { ".to_string() + action.as_str();
@@ -855,7 +855,7 @@ macro_rules! def_machine {
     }
 
   ) => {{
-    use escapade::Escapable;
+    use ::escapade::Escapable;
     let mut s = String::new();
     s.push_str (format!(
       "  subgraph cluster_{} {{\n", stringify!($machine)).as_str());
@@ -911,9 +911,9 @@ macro_rules! def_machine {
       );
 
       for (i,f) in _extended_fields.iter().enumerate() {
-        use escapade::Escapable;
+        use ::escapade::Escapable;
 
-        let spacer1 : String = std::iter::repeat (' ')
+        let spacer1 : String = ::std::iter::repeat (' ')
           .take(longest_fieldname - f.len())
           .collect();
 
@@ -954,7 +954,7 @@ macro_rules! def_machine {
 
           $(
           {
-            use escapade::Escapable;
+            use ::escapade::Escapable;
             let default_val : $param_type = def_machine!{
               @expr_default $($param_default)*
             };
@@ -977,7 +977,7 @@ macro_rules! def_machine {
           $(
           let mut guard = stringify!($guard_expr).to_string();
           if guard.as_str() != "true" {
-            use escapade::Escapable;
+            use ::escapade::Escapable;
             guard = "  [ ".to_string() + guard.as_str();
             guard.push (' ');
             guard.push (']');
@@ -989,7 +989,7 @@ macro_rules! def_machine {
           $(
           let mut action = stringify!($action_expr).to_string();
           if action.as_str() != "()" {
-            use escapade::Escapable;
+            use ::escapade::Escapable;
             if action.chars().next().unwrap() != '{' {
               debug_assert!(action.chars().last().unwrap() != '}');
               action = "  { ".to_string() + action.as_str();
@@ -1044,7 +1044,7 @@ macro_rules! def_machine {
     }
 
   ) => {{
-    use escapade::Escapable;
+    use ::escapade::Escapable;
     let mut s = String::new();
     s.push_str (format!(
       "  subgraph cluster_{} {{\n", stringify!($machine)).as_str());
@@ -1116,12 +1116,12 @@ macro_rules! def_machine {
       );
 
       for (i,f) in _extended_fields.iter().enumerate() {
-        use escapade::Escapable;
+        use ::escapade::Escapable;
 
-        let spacer1 : String = std::iter::repeat (' ')
+        let spacer1 : String = ::std::iter::repeat (' ')
           .take(longest_fieldname - f.len())
           .collect();
-        let _spacer2 : String = std::iter::repeat (' ')
+        let _spacer2 : String = ::std::iter::repeat (' ')
           .take (longest_typename - _extended_types[i].len())
           .collect();
 
@@ -1169,7 +1169,7 @@ macro_rules! def_machine {
 
           $(
           {
-            use escapade::Escapable;
+            use ::escapade::Escapable;
             let default_val : $param_type = def_machine!{
               @expr_default $($param_default)*
             };
@@ -1192,7 +1192,7 @@ macro_rules! def_machine {
           $(
           let mut guard = stringify!($guard_expr).to_string();
           if guard.as_str() != "true" {
-            use escapade::Escapable;
+            use ::escapade::Escapable;
             guard = "  [ ".to_string() + guard.as_str();
             guard.push (' ');
             guard.push (']');
@@ -1204,7 +1204,7 @@ macro_rules! def_machine {
           $(
           let mut action = stringify!($action_expr).to_string();
           if action.as_str() != "()" {
-            use escapade::Escapable;
+            use ::escapade::Escapable;
             if action.chars().next().unwrap() != '{' {
               debug_assert!(action.chars().last().unwrap() != '}');
               action = "  { ".to_string() + action.as_str();
@@ -1327,12 +1327,12 @@ macro_rules! def_machine {
       );
 
       for (i,f) in _data_fields.iter().enumerate() {
-        use escapade::Escapable;
+        use ::escapade::Escapable;
 
-        let spacer1 : String = std::iter::repeat (' ')
+        let spacer1 : String = ::std::iter::repeat (' ')
           .take(longest_fieldname - f.len())
           .collect();
-        let spacer2 : String = std::iter::repeat (' ')
+        let spacer2 : String = ::std::iter::repeat (' ')
           .take(longest_typename - _data_types[i].len())
           .collect();
 
@@ -1361,7 +1361,7 @@ macro_rules! def_machine {
     // TODO: state guards
     /*
     $({
-      use escapade::Escapable;
+      use ::escapade::Escapable;
       if !mono_font {
         s.push_str ("|<FONT FACE=\"Mono\">");
         mono_font = true;
@@ -1382,7 +1382,7 @@ macro_rules! def_machine {
     })*
 
     $({
-      use escapade::Escapable;
+      use ::escapade::Escapable;
       if !mono_font {
         s.push_str ("|<FONT FACE=\"Mono\">");
         mono_font = true;
@@ -1427,7 +1427,7 @@ macro_rules! def_machine {
             stringify!($event)).as_str());
 
           $({
-            use escapade::Escapable;
+            use ::escapade::Escapable;
             let default_val : $param_type = def_machine!{
               @expr_default $($param_default)*
             };
@@ -1449,7 +1449,7 @@ macro_rules! def_machine {
           $(
           let mut guard = stringify!($guard_expr).to_string();
           if guard.as_str() != "true" {
-            use escapade::Escapable;
+            use ::escapade::Escapable;
             guard = "  [ ".to_string() + guard.as_str();
             guard.push (' ');
             guard.push (']');
@@ -1461,7 +1461,7 @@ macro_rules! def_machine {
           $(
           let mut action = stringify!($action_expr).to_string();
           if action.as_str() != "()" {
-            use escapade::Escapable;
+            use ::escapade::Escapable;
             if action.chars().next().unwrap() != '{' {
               debug_assert!(action.chars().last().unwrap() != '}');
               action = "  { ".to_string() + action.as_str();
@@ -1528,7 +1528,7 @@ macro_rules! def_machine {
       let default_val : $data_type
         = def_machine!(@expr_default $($data_default)*);
       let pretty_br = {
-        use escapade::Escapable;
+        use ::escapade::Escapable;
         let pretty_newline = format!("{:#?}", default_val);
         let mut pretty_br = String::new();
         let separator = "<BR ALIGN=\"LEFT\"/>\n";
@@ -1582,12 +1582,12 @@ macro_rules! def_machine {
       );
 
       for (i,f) in _data_fields.iter().enumerate() {
-        use escapade::Escapable;
+        use ::escapade::Escapable;
 
-        let spacer1 : String = std::iter::repeat (' ')
+        let spacer1 : String = ::std::iter::repeat (' ')
           .take(longest_fieldname - f.len())
           .collect();
-        let spacer2 : String = std::iter::repeat (' ')
+        let spacer2 : String = ::std::iter::repeat (' ')
           .take(longest_typename - _data_types[i].len())
           .collect();
 
@@ -1617,7 +1617,7 @@ macro_rules! def_machine {
     // TODO: state guards
     /*
     $({
-      use escapade::Escapable;
+      use ::escapade::Escapable;
       if !mono_font {
         s.push_str ("|<FONT FACE=\"Mono\">");
         mono_font = true;
@@ -1638,7 +1638,7 @@ macro_rules! def_machine {
     })*
 
     $({
-      use escapade::Escapable;
+      use ::escapade::Escapable;
       if !mono_font {
         s.push_str ("|<FONT FACE=\"Mono\">");
         mono_font = true;
@@ -1683,7 +1683,7 @@ macro_rules! def_machine {
             stringify!($event)).as_str());
 
           $({
-            use escapade::Escapable;
+            use ::escapade::Escapable;
             let default_val : $param_type = def_machine!{
               @expr_default $($param_default)*
             };
@@ -1705,7 +1705,7 @@ macro_rules! def_machine {
           $(
           let mut guard = stringify!($guard_expr).to_string();
           if guard.as_str() != "true" {
-            use escapade::Escapable;
+            use ::escapade::Escapable;
             guard = "  [ ".to_string() + guard.as_str();
             guard.push (' ');
             guard.push (']');
@@ -1717,7 +1717,7 @@ macro_rules! def_machine {
           $(
           let mut action = stringify!($action_expr).to_string();
           if action.as_str() != "()" {
-            use escapade::Escapable;
+            use ::escapade::Escapable;
             if action.chars().next().unwrap() != '{' {
               debug_assert!(action.chars().last().unwrap() != '}');
               action = "  { ".to_string() + action.as_str();
@@ -1809,9 +1809,9 @@ macro_rules! def_machine {
       );
 
       for (i,f) in _data_fields.iter().enumerate() {
-        use escapade::Escapable;
+        use ::escapade::Escapable;
 
-        let spacer1 : String = std::iter::repeat (' ')
+        let spacer1 : String = ::std::iter::repeat (' ')
           .take(longest_fieldname - f.len())
           .collect();
 
@@ -1874,7 +1874,7 @@ macro_rules! def_machine {
     /*
     let mut open_params = false;
     $({
-      use escapade::Escapable;
+      use ::escapade::Escapable;
       if !open_params {
         if !_mono_font {
           s.push_str ("<FONT FACE=\"Mono\">");
@@ -1913,7 +1913,7 @@ macro_rules! def_machine {
       }
       let mut guard = stringify!($guard_expr).to_string();
       if guard.as_str() != "true" {
-        use escapade::Escapable;
+        use ::escapade::Escapable;
         guard = "  [ ".to_string() + guard.as_str();
         guard.push (' ');
         guard.push (']');
@@ -1929,7 +1929,7 @@ macro_rules! def_machine {
       // don't render empty actions
       "{}" | "{ }" => {}
       _ => {
-        use escapade::Escapable;
+        use ::escapade::Escapable;
         if !_mono_font {
           s.push_str ("<FONT FACE=\"Mono\"><BR/>");
           _mono_font = true;
@@ -2090,9 +2090,9 @@ macro_rules! def_machine {
     {
       pub fn report() where $($($type_var : 'static),+)* {
         let machine_name = stringify!($machine);
-        let machine_type = unsafe { std::intrinsics::type_name::<Self>() };
+        let machine_type = unsafe { ::std::intrinsics::type_name::<Self>() };
         println!("{} report...", machine_name);
-        println!("size of {}: {}", machine_type, std::mem::size_of::<Self>());
+        println!("size of {}: {}", machine_type, ::std::mem::size_of::<Self>());
         println!("...{} report", machine_name);
       }
 
@@ -2530,7 +2530,7 @@ macro_rules! def_machine_debug {
 
     impl $(<$($type_var),+>)* $machine $(<$($type_var),+>)* where
     $($(
-      $type_var : std::fmt::Debug,
+      $type_var : ::std::fmt::Debug,
       $($($type_var : $type_constraint),+)*
     ),+)*
     {
@@ -2566,7 +2566,7 @@ macro_rules! def_machine_debug {
 
     impl $(<$($type_var),+>)* ExtendedState $(<$($type_var),+>)* where
     $($(
-      $type_var : std::fmt::Debug,
+      $type_var : ::std::fmt::Debug,
       $($($type_var : $type_constraint),+)*
     ),+)*
     {
@@ -2671,7 +2671,7 @@ macro_rules! def_machine_debug {
   ) => {
 
     pub fn handle_event (&mut self, event : Event)
-      -> Result <(), macro_machines::HandleEventException>
+      -> Result <(), $crate::HandleEventException>
     {
       trace!("{}::handle_event: {:?}", stringify!($machine), event);
       // if only one kind of transition exists the following match expression
@@ -2709,7 +2709,7 @@ macro_rules! def_machine_debug {
             trace!("<<< Err: internal transition: \
               current state ({:?}) != state ({:?})",
                 self.state.id, state_id);
-            Err (macro_machines::HandleEventException::WrongState)
+            Err ($crate::HandleEventException::WrongState)
           }
         }
 
@@ -2734,7 +2734,7 @@ macro_rules! def_machine_debug {
             trace!("<<< Err: external transition: \
               current state ({:?}) != source state ({:?})",
                 self.state.id, source_id);
-            Err (macro_machines::HandleEventException::WrongState)
+            Err ($crate::HandleEventException::WrongState)
           }
         }
 
@@ -3098,7 +3098,7 @@ macro_rules! def_machine_debug {
     }
 
   ) => {{
-    use escapade::Escapable;
+    use ::escapade::Escapable;
     let mut s = String::new();
     s.push_str (format!(
       "  subgraph cluster_{} {{\n", stringify!($machine)).as_str());
@@ -3179,12 +3179,12 @@ macro_rules! def_machine_debug {
       );
 
       for (i,f) in _extended_fields.iter().enumerate() {
-        use escapade::Escapable;
+        use ::escapade::Escapable;
 
-        let spacer1 : String = std::iter::repeat (' ')
+        let spacer1 : String = ::std::iter::repeat (' ')
           .take(longest_fieldname - f.len())
           .collect();
-        let spacer2 : String = std::iter::repeat (' ')
+        let spacer2 : String = ::std::iter::repeat (' ')
           .take (longest_typename - _extended_types[i].len())
           .collect();
 
@@ -3225,7 +3225,7 @@ macro_rules! def_machine_debug {
 
           $(
           {
-            use escapade::Escapable;
+            use ::escapade::Escapable;
             let default_val : $param_type = def_machine_debug!{
               @expr_default $($param_default)*
             };
@@ -3248,7 +3248,7 @@ macro_rules! def_machine_debug {
           $(
           let mut guard = stringify!($guard_expr).to_string();
           if guard.as_str() != "true" {
-            use escapade::Escapable;
+            use ::escapade::Escapable;
             guard = "  [ ".to_string() + guard.as_str();
             guard.push (' ');
             guard.push (']');
@@ -3260,7 +3260,7 @@ macro_rules! def_machine_debug {
           $(
           let mut action = stringify!($action_expr).to_string();
           if action.as_str() != "()" {
-            use escapade::Escapable;
+            use ::escapade::Escapable;
             if action.chars().next().unwrap() != '{' {
               debug_assert!(action.chars().last().unwrap() != '}');
               action = "  { ".to_string() + action.as_str();
@@ -3313,7 +3313,7 @@ macro_rules! def_machine_debug {
     }
 
   ) => {{
-    use escapade::Escapable;
+    use ::escapade::Escapable;
     let mut s = String::new();
     s.push_str (format!(
       "  subgraph cluster_{} {{\n", stringify!($machine)).as_str());
@@ -3369,9 +3369,9 @@ macro_rules! def_machine_debug {
       );
 
       for (i,f) in _extended_fields.iter().enumerate() {
-        use escapade::Escapable;
+        use ::escapade::Escapable;
 
-        let spacer1 : String = std::iter::repeat (' ')
+        let spacer1 : String = ::std::iter::repeat (' ')
           .take(longest_fieldname - f.len())
           .collect();
 
@@ -3412,7 +3412,7 @@ macro_rules! def_machine_debug {
 
           $(
           {
-            use escapade::Escapable;
+            use ::escapade::Escapable;
             let default_val : $param_type = def_machine_debug!{
               @expr_default $($param_default)*
             };
@@ -3435,7 +3435,7 @@ macro_rules! def_machine_debug {
           $(
           let mut guard = stringify!($guard_expr).to_string();
           if guard.as_str() != "true" {
-            use escapade::Escapable;
+            use ::escapade::Escapable;
             guard = "  [ ".to_string() + guard.as_str();
             guard.push (' ');
             guard.push (']');
@@ -3447,7 +3447,7 @@ macro_rules! def_machine_debug {
           $(
           let mut action = stringify!($action_expr).to_string();
           if action.as_str() != "()" {
-            use escapade::Escapable;
+            use ::escapade::Escapable;
             if action.chars().next().unwrap() != '{' {
               debug_assert!(action.chars().last().unwrap() != '}');
               action = "  { ".to_string() + action.as_str();
@@ -3502,7 +3502,7 @@ macro_rules! def_machine_debug {
     }
 
   ) => {{
-    use escapade::Escapable;
+    use ::escapade::Escapable;
     let mut s = String::new();
     s.push_str (format!(
       "  subgraph cluster_{} {{\n", stringify!($machine)).as_str());
@@ -3574,12 +3574,12 @@ macro_rules! def_machine_debug {
       );
 
       for (i,f) in _extended_fields.iter().enumerate() {
-        use escapade::Escapable;
+        use ::escapade::Escapable;
 
-        let spacer1 : String = std::iter::repeat (' ')
+        let spacer1 : String = ::std::iter::repeat (' ')
           .take(longest_fieldname - f.len())
           .collect();
-        let _spacer2 : String = std::iter::repeat (' ')
+        let _spacer2 : String = ::std::iter::repeat (' ')
           .take (longest_typename - _extended_types[i].len())
           .collect();
 
@@ -3627,7 +3627,7 @@ macro_rules! def_machine_debug {
 
           $(
           {
-            use escapade::Escapable;
+            use ::escapade::Escapable;
             let default_val : $param_type = def_machine_debug!{
               @expr_default $($param_default)*
             };
@@ -3650,7 +3650,7 @@ macro_rules! def_machine_debug {
           $(
           let mut guard = stringify!($guard_expr).to_string();
           if guard.as_str() != "true" {
-            use escapade::Escapable;
+            use ::escapade::Escapable;
             guard = "  [ ".to_string() + guard.as_str();
             guard.push (' ');
             guard.push (']');
@@ -3662,7 +3662,7 @@ macro_rules! def_machine_debug {
           $(
           let mut action = stringify!($action_expr).to_string();
           if action.as_str() != "()" {
-            use escapade::Escapable;
+            use ::escapade::Escapable;
             if action.chars().next().unwrap() != '{' {
               debug_assert!(action.chars().last().unwrap() != '}');
               action = "  { ".to_string() + action.as_str();
@@ -3785,12 +3785,12 @@ macro_rules! def_machine_debug {
       );
 
       for (i,f) in _data_fields.iter().enumerate() {
-        use escapade::Escapable;
+        use ::escapade::Escapable;
 
-        let spacer1 : String = std::iter::repeat (' ')
+        let spacer1 : String = ::std::iter::repeat (' ')
           .take(longest_fieldname - f.len())
           .collect();
-        let spacer2 : String = std::iter::repeat (' ')
+        let spacer2 : String = ::std::iter::repeat (' ')
           .take(longest_typename - _data_types[i].len())
           .collect();
 
@@ -3819,7 +3819,7 @@ macro_rules! def_machine_debug {
     // TODO: state guards
     /*
     $({
-      use escapade::Escapable;
+      use ::escapade::Escapable;
       if !mono_font {
         s.push_str ("|<FONT FACE=\"Mono\">");
         mono_font = true;
@@ -3840,7 +3840,7 @@ macro_rules! def_machine_debug {
     })*
 
     $({
-      use escapade::Escapable;
+      use ::escapade::Escapable;
       if !mono_font {
         s.push_str ("|<FONT FACE=\"Mono\">");
         mono_font = true;
@@ -3885,7 +3885,7 @@ macro_rules! def_machine_debug {
             stringify!($event)).as_str());
 
           $({
-            use escapade::Escapable;
+            use ::escapade::Escapable;
             let default_val : $param_type = def_machine_debug!{
               @expr_default $($param_default)*
             };
@@ -3907,7 +3907,7 @@ macro_rules! def_machine_debug {
           $(
           let mut guard = stringify!($guard_expr).to_string();
           if guard.as_str() != "true" {
-            use escapade::Escapable;
+            use ::escapade::Escapable;
             guard = "  [ ".to_string() + guard.as_str();
             guard.push (' ');
             guard.push (']');
@@ -3919,7 +3919,7 @@ macro_rules! def_machine_debug {
           $(
           let mut action = stringify!($action_expr).to_string();
           if action.as_str() != "()" {
-            use escapade::Escapable;
+            use ::escapade::Escapable;
             if action.chars().next().unwrap() != '{' {
               debug_assert!(action.chars().last().unwrap() != '}');
               action = "  { ".to_string() + action.as_str();
@@ -3986,7 +3986,7 @@ macro_rules! def_machine_debug {
       let default_val : $data_type
         = def_machine_debug!(@expr_default $($data_default)*);
       let pretty_br = {
-        use escapade::Escapable;
+        use ::escapade::Escapable;
         let pretty_newline = format!("{:#?}", default_val);
         let mut pretty_br = String::new();
         let separator = "<BR ALIGN=\"LEFT\"/>\n";
@@ -4040,12 +4040,12 @@ macro_rules! def_machine_debug {
       );
 
       for (i,f) in _data_fields.iter().enumerate() {
-        use escapade::Escapable;
+        use ::escapade::Escapable;
 
-        let spacer1 : String = std::iter::repeat (' ')
+        let spacer1 : String = ::std::iter::repeat (' ')
           .take(longest_fieldname - f.len())
           .collect();
-        let spacer2 : String = std::iter::repeat (' ')
+        let spacer2 : String = ::std::iter::repeat (' ')
           .take(longest_typename - _data_types[i].len())
           .collect();
 
@@ -4075,7 +4075,7 @@ macro_rules! def_machine_debug {
     // TODO: state guards
     /*
     $({
-      use escapade::Escapable;
+      use ::escapade::Escapable;
       if !mono_font {
         s.push_str ("|<FONT FACE=\"Mono\">");
         mono_font = true;
@@ -4096,7 +4096,7 @@ macro_rules! def_machine_debug {
     })*
 
     $({
-      use escapade::Escapable;
+      use ::escapade::Escapable;
       if !mono_font {
         s.push_str ("|<FONT FACE=\"Mono\">");
         mono_font = true;
@@ -4141,7 +4141,7 @@ macro_rules! def_machine_debug {
             stringify!($event)).as_str());
 
           $({
-            use escapade::Escapable;
+            use ::escapade::Escapable;
             let default_val : $param_type = def_machine_debug!{
               @expr_default $($param_default)*
             };
@@ -4163,7 +4163,7 @@ macro_rules! def_machine_debug {
           $(
           let mut guard = stringify!($guard_expr).to_string();
           if guard.as_str() != "true" {
-            use escapade::Escapable;
+            use ::escapade::Escapable;
             guard = "  [ ".to_string() + guard.as_str();
             guard.push (' ');
             guard.push (']');
@@ -4175,7 +4175,7 @@ macro_rules! def_machine_debug {
           $(
           let mut action = stringify!($action_expr).to_string();
           if action.as_str() != "()" {
-            use escapade::Escapable;
+            use ::escapade::Escapable;
             if action.chars().next().unwrap() != '{' {
               debug_assert!(action.chars().last().unwrap() != '}');
               action = "  { ".to_string() + action.as_str();
@@ -4267,9 +4267,9 @@ macro_rules! def_machine_debug {
       );
 
       for (i,f) in _data_fields.iter().enumerate() {
-        use escapade::Escapable;
+        use ::escapade::Escapable;
 
-        let spacer1 : String = std::iter::repeat (' ')
+        let spacer1 : String = ::std::iter::repeat (' ')
           .take(longest_fieldname - f.len())
           .collect();
 
@@ -4332,7 +4332,7 @@ macro_rules! def_machine_debug {
     /*
     let mut open_params = false;
     $({
-      use escapade::Escapable;
+      use ::escapade::Escapable;
       if !open_params {
         if !_mono_font {
           s.push_str ("<FONT FACE=\"Mono\">");
@@ -4371,7 +4371,7 @@ macro_rules! def_machine_debug {
       }
       let mut guard = stringify!($guard_expr).to_string();
       if guard.as_str() != "true" {
-        use escapade::Escapable;
+        use ::escapade::Escapable;
         guard = "  [ ".to_string() + guard.as_str();
         guard.push (' ');
         guard.push (']');
@@ -4387,7 +4387,7 @@ macro_rules! def_machine_debug {
       // don't render empty actions
       "{}" | "{ }" => {}
       _ => {
-        use escapade::Escapable;
+        use ::escapade::Escapable;
         if !_mono_font {
           s.push_str ("<FONT FACE=\"Mono\"><BR/>");
           _mono_font = true;
@@ -4495,7 +4495,7 @@ macro_rules! def_machine_debug {
     #[derive(Debug)]
     pub struct $machine $(<$($type_var),+>)* where
     $($(
-      $type_var : std::fmt::Debug,
+      $type_var : ::std::fmt::Debug,
       $($($type_var : $type_constraint),+)*
     ),+)*
     {
@@ -4512,7 +4512,7 @@ macro_rules! def_machine_debug {
     #[derive(Debug)]
     pub struct ExtendedState $(<$($type_var),+>)* where
     $($(
-      $type_var : std::fmt::Debug,
+      $type_var : ::std::fmt::Debug,
       $($($type_var : $type_constraint),+)*
     ),+)*
     {
@@ -4549,15 +4549,15 @@ macro_rules! def_machine_debug {
 
     impl $(<$($type_var),+>)* $machine $(<$($type_var),+>)* where
     $($(
-      $type_var : std::fmt::Debug,
+      $type_var : ::std::fmt::Debug,
       $($($type_var : $type_constraint),+)*
     ),+)*
     {
       pub fn report() where $($($type_var : 'static),+)* {
         let machine_name = stringify!($machine);
-        let machine_type = unsafe { std::intrinsics::type_name::<Self>() };
+        let machine_type = unsafe { ::std::intrinsics::type_name::<Self>() };
         println!("{} report...", machine_name);
-        println!("size of {}: {}", machine_type, std::mem::size_of::<Self>());
+        println!("size of {}: {}", machine_type, ::std::mem::size_of::<Self>());
         println!("...{} report", machine_name);
       }
 
@@ -4603,7 +4603,7 @@ macro_rules! def_machine_debug {
       for $machine $(<$($type_var),+>)*
     where
     $($(
-      $type_var : std::fmt::Debug,
+      $type_var : ::std::fmt::Debug,
       $($($type_var : $type_constraint),+)*
     ),+)*
     {
@@ -4617,7 +4617,7 @@ macro_rules! def_machine_debug {
       for $machine $(<$($type_var),+>)*
     where
     $($(
-      $type_var : std::fmt::Debug,
+      $type_var : ::std::fmt::Debug,
       $($($type_var : $type_constraint),+)*
     ),+)*
     {
@@ -4629,7 +4629,7 @@ macro_rules! def_machine_debug {
 
     impl $(<$($type_var),+>)* Drop for $machine $(<$($type_var),+>)* where
     $($(
-      $type_var : std::fmt::Debug,
+      $type_var : ::std::fmt::Debug,
       $($($type_var : $type_constraint),+)*
     ),+)*
     {
@@ -4808,7 +4808,7 @@ macro_rules! def_machine_nodefault_debug {
 
     impl $(<$($type_var),+>)* $machine $(<$($type_var),+>)* where
     $($(
-      $type_var : std::fmt::Debug,
+      $type_var : ::std::fmt::Debug,
       $($($type_var : $type_constraint),+)*
     ),+)*
     {
@@ -4831,7 +4831,7 @@ macro_rules! def_machine_nodefault_debug {
 
     impl $(<$($type_var),+>)* ExtendedState $(<$($type_var),+>)* where
     $($(
-      $type_var : std::fmt::Debug,
+      $type_var : ::std::fmt::Debug,
       $($($type_var : $type_constraint),+)*
     ),+)*
     {

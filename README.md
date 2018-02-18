@@ -11,11 +11,11 @@ dependencies:
 
 ```toml
 [dependencies]
-log = "0.3.*"
+log = "0.4.*"
 escapade = "0.0.*"
 ```
 
-and the following directives:
+and the following directives in the crate root:
 
 ```rust
 #![feature(const_fn)]
