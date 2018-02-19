@@ -145,7 +145,7 @@ fn machine_dotfile <M : MachineDotfile>
     s.push_str (format!("{}", extended_string).as_str());
   } // end extended state
 
-  // internal state transitions
+  // extended state transitions
   // TODO
 
   s.push_str ("<BR ALIGN=\"LEFT\"/>");
@@ -270,16 +270,19 @@ fn machine_dotfile <M : MachineDotfile>
   let event_sources = M::event_sources();
   let event_targets = M::event_targets();
   let event_actions = M::event_actions();
+  let mut universal = false;
   // for each event: transition edge
   for (i, event) in M::events().into_iter().enumerate() {
     let source = event_sources[i];
     let target = event_targets[i];
     let action = event_actions[i];
-    // external transition
-    // TODO internal transitions
+    // external and universal transitions
     if !target.is_empty() {
+      if source == "*" {
+        universal = true;
+      }
       s.push_str (format!(
-        "    {} -> {} [label=<<FONT FACE=\"Sans Italic\">{}</FONT>",
+        "    \"{}\" -> {} [label=<<FONT FACE=\"Sans Italic\">{}</FONT>",
         source, target, event
       ).as_str());
 
@@ -311,7 +314,16 @@ fn machine_dotfile <M : MachineDotfile>
       }
       s.push_str (">]\n");
     } // end external transition
+    // TODO internal transitions
+
   } // end for each event: transition edge
+
+  if universal {
+    for state in M::states() {
+      s.push_str (format!(
+        "    {} -> \"*\" [style=dashed, color=gray]", state).as_str());
+    }
+  }
 
   // terminal transition: node + edge
   let state_terminal = M::state_terminal();

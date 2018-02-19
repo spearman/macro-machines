@@ -2,3 +2,4 @@
 - machine trait
 - currently only trace! log messages are defined, add debug, info, warn, error
   messages ?
+- reduce duplication if possible between the debug/non-debug macros

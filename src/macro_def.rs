@@ -22,7 +22,7 @@ macro_rules! def_machine {
         ))+
       ]
       EVENTS [
-        $(event $event:ident <$source:ident> $(=> <$target:ident>)*
+        $(event $event:ident <$source:tt> $(=> <$target:ident>)*
           $({ $($state_data:ident),* } => $action:block)*
         )+
       ]
@@ -190,7 +190,7 @@ macro_rules! def_machine {
           let mut _w = Vec::new();
           $(
           let default_val : $data_type
-            = def_machine_debug!(@expr_default $($data_default)*);
+            = def_machine!(@expr_default $($data_default)*);
           _w.push (format!("{:#?}", default_val));
           )*
           v.push (_w);
@@ -268,7 +268,7 @@ macro_rules! def_machine {
         ))+
       ]
       EVENTS [
-        $(event $event:ident <$source:ident> $(=> <$target:ident>)*
+        $(event $event:ident <$source:tt> $(=> <$target:ident>)*
           $({ $($state_data:ident),* } => $action:block)*
         )+
       ]
@@ -321,7 +321,7 @@ macro_rules! def_machine {
         ))+
       ]
       EVENTS [
-        $(event $event:ident <$source:ident> $(=> <$target:ident>)*
+        $(event $event:ident <$source:tt> $(=> <$target:ident>)*
           $({ $($state_data:ident),* } => $action:block)*
         )+
       ]
@@ -335,13 +335,32 @@ macro_rules! def_machine {
     pub fn handle_event (&mut self, event : Event)
       -> Result <(), $crate::HandleEventException>
     {
+      trace!("{}::handle_event: {:?}", stringify!($machine), event.id);
       // if only one kind of transition exists the following match expression
       // will detect the other branch as "unreachable_code"
       #[allow(unreachable_code)]
       match event.transition() {
 
-        Transition::Internal (state_id) => {
-          if self.state.id == state_id {
+        Transition::Universal (target_id) => {
+          trace!("<<< Ok: {:?} => {:?}", self.state.id, target_id);
+          {
+            $(let $self_reference = &mut*self;)*
+            match event.id {
+              $(EventId::$event => {
+                // only expands universal actions, unreachable otherwise
+                def_machine!{
+                  @event_action_universal
+                  event $event <$source> $(=> <$target>)* $($action)*
+                }
+              })+
+            }
+          }
+          self.state = target_id.into();
+          Ok (())
+        }
+
+        Transition::Internal (source_id) => {
+          if self.state.id == source_id {
             // bring extended state variables into scope
             #[allow(unused_variables)]
             match &mut self.extended_state {
@@ -349,16 +368,22 @@ macro_rules! def_machine {
                 // map each event to an action
                 match event.id {
                   $(EventId::$event => {
+                    // for universal transitions there is no source state so
+                    // this produces a wildcard pattern resulting in the
+                    // last branch being unreachable
                     // bring local state variables into scope
+                    #[allow(unreachable_patterns)]
                     match &mut self.state.data {
-                      &mut StateData::$source {$($(ref mut $state_data,)*)*..}
-                        => {
-                          // only expands internal actions, unreachable otherwise
-                          def_machine!{
-                            @event_action_internal
-                            event $event <$source> $(=> <$target>)* $($action)*
-                          }
+                      def_machine!{
+                        @event_internal_state_pattern
+                        $source { $($($state_data),*)* }
+                      } => {
+                        // only expands internal actions, unreachable otherwise
+                        def_machine!{
+                          @event_action_internal
+                          event $event <$source> $(=> <$target>)* $($action)*
                         }
+                      }
                       _ => unreachable!("current state should match event source")
                     }
                   })+
@@ -369,7 +394,7 @@ macro_rules! def_machine {
           } else {
             trace!("<<< Err: internal transition: \
               current state ({:?}) != state ({:?})",
-                self.state.id, state_id);
+                self.state.id, source_id);
             Err ($crate::HandleEventException::WrongState)
           }
         }
@@ -399,10 +424,28 @@ macro_rules! def_machine {
           }
         }
 
-      }
-    }
+      } // end match transition
+    } // end fn handle_event
 
   };  // end @impl_fn_handle_event
+
+  //
+  //  @event_internal_state_pattern
+  //
+  ( @event_internal_state_pattern
+    $source:ident { $($state_data:ident),* }
+  ) => {
+    &mut StateData::$source {$(ref mut $state_data,)*..}
+  };
+
+  //
+  //  @event_internal_state_pattern: not an internal event
+  //
+  ( @event_internal_state_pattern
+    * { $($state_data:ident),* }
+  ) => {
+    _
+  };
 
   //
   //  @event_action_external
@@ -421,6 +464,29 @@ macro_rules! def_machine {
   ) => { unreachable!("not an external event") };
 
   //
+  //  @event_action_external: not an external event
+  //
+  ( @event_action_external
+    event $event:ident <*> => <$target:ident> $($action:block)*
+  ) => { unreachable!("not an external event") };
+
+  //
+  //  @event_action_universal
+  //
+  ( @event_action_universal
+    event $event:ident <*> => <$target:ident> $($action:block)*
+  ) => {
+    $($action)*
+  };
+
+  //
+  //  @event_action_universal: not an universal event
+  //
+  ( @event_action_universal
+    event $event:ident <$source:ident> $(=> <$target:ident>)* $($action:block)*
+  ) => { unreachable!("not an universal event") };
+
+  //
   //  @event_action_internal
   //
   ( @event_action_internal
@@ -433,7 +499,7 @@ macro_rules! def_machine {
   //  @event_action_internal: not an internal event
   //
   ( @event_action_internal
-    event $event:ident <$source:ident> => <$target:ident> $($action:block)*
+    event $event:ident <$source:tt> => <$target:ident> $($action:block)*
   ) => { unreachable!("not an internal event") };
 
   //
@@ -448,6 +514,13 @@ macro_rules! def_machine {
   //
   ( @event_transition <$source:ident> ) => {
     Transition::Internal (StateId::$source)
+  };
+
+  //
+  //  @event_transition: universal
+  //
+  ( @event_transition <*> => <$target:ident> ) => {
+    Transition::Universal (StateId::$target)
   };
 
   //
@@ -485,7 +558,7 @@ macro_rules! def_machine {
         ))+
       ]
       EVENTS [
-        $(event $event:ident <$source:ident> $(=> <$target:ident>)*
+        $(event $event:ident <$source:tt> $(=> <$target:ident>)*
           $({ $($state_data:ident),* } => $action:block)*
         )+
       ]
@@ -544,8 +617,9 @@ macro_rules! def_machine {
 
     #[derive(Debug,PartialEq)]
     pub enum Transition {
-      Internal (StateId),
-      External (StateId, StateId)
+      Internal  (StateId),
+      External  (StateId, StateId),
+      Universal (StateId)
     }
 
     #[derive(Clone,Debug,PartialEq)]
@@ -770,7 +844,7 @@ macro_rules! def_machine_nodefault {
         ))+
       ]
       EVENTS [
-        $(event $event:ident <$source:ident> $(=> <$target:ident>)*
+        $(event $event:ident <$source:tt> $(=> <$target:ident>)*
           $({ $($state_data:ident),* } => $action:block)*
         )+
       ]
@@ -904,7 +978,7 @@ macro_rules! def_machine_nodefault {
           let mut _w = Vec::new();
           $(
           let default_val : $data_type
-            = def_machine_debug!(@expr_default $($data_default)*);
+            = def_machine!(@expr_default $($data_default)*);
           _w.push (format!("{:#?}", default_val));
           )*
           v.push (_w);
@@ -988,7 +1062,7 @@ macro_rules! def_machine_nodefault {
         ))+
       ]
       EVENTS [
-        $(event $event:ident <$source:ident> $(=> <$target:ident>)*
+        $(event $event:ident <$source:tt> $(=> <$target:ident>)*
           $({ $($state_data:ident),* } => $action:block)*
         )+
       ]
@@ -1055,7 +1129,7 @@ macro_rules! def_machine_debug {
         ))+
       ]
       EVENTS [
-        $(event $event:ident <$source:ident> $(=> <$target:ident>)*
+        $(event $event:ident <$source:tt> $(=> <$target:ident>)*
           $({ $($state_data:ident),* } => $action:block)*
         )+
       ]
@@ -1304,7 +1378,7 @@ macro_rules! def_machine_debug {
         ))+
       ]
       EVENTS [
-        $(event $event:ident <$source:ident> $(=> <$target:ident>)*
+        $(event $event:ident <$source:tt> $(=> <$target:ident>)*
           $({ $($state_data:ident),* } => $action:block)*
         )+
       ]
@@ -1357,7 +1431,7 @@ macro_rules! def_machine_debug {
         ))+
       ]
       EVENTS [
-        $(event $event:ident <$source:ident> $(=> <$target:ident>)*
+        $(event $event:ident <$source:tt> $(=> <$target:ident>)*
           $({ $($state_data:ident),* } => $action:block)*
         )+
       ]
@@ -1377,6 +1451,24 @@ macro_rules! def_machine_debug {
       #[allow(unreachable_code)]
       match event.transition() {
 
+        Transition::Universal (target_id) => {
+          trace!("<<< Ok: {:?} => {:?}", self.state.id, target_id);
+          {
+            $(let $self_reference = &mut*self;)*
+            match event.id {
+              $(EventId::$event => {
+                // only expands universal actions, unreachable otherwise
+                def_machine_debug!{
+                  @event_action_universal
+                  event $event <$source> $(=> <$target>)* $($action)*
+                }
+              })+
+            }
+          }
+          self.state = target_id.into();
+          Ok (())
+        }
+
         Transition::Internal (state_id) => {
           if self.state.id == state_id {
             // bring extended state variables into scope
@@ -1386,16 +1478,22 @@ macro_rules! def_machine_debug {
                 // map each event to an action
                 match event.id {
                   $(EventId::$event => {
+                    // for universal transitions there is no source state so
+                    // this produces a wildcard pattern resulting in the
+                    // last branch being unreachable
                     // bring local state variables into scope
+                    #[allow(unreachable_patterns)]
                     match &mut self.state.data {
-                      &mut StateData::$source {$($(ref mut $state_data,)*)*..}
-                        => {
-                          // only expands internal actions, unreachable otherwise
-                          def_machine_debug!{
-                            @event_action_internal
-                            event $event <$source> $(=> <$target>)* $($action)*
-                          }
+                      def_machine_debug!{
+                        @event_internal_state_pattern
+                        $source { $($($state_data),*)* }
+                      } => {
+                        // only expands internal actions, unreachable otherwise
+                        def_machine_debug!{
+                          @event_action_internal
+                          event $event <$source> $(=> <$target>)* $($action)*
                         }
+                      }
                       _ => unreachable!("current state should match event source")
                     }
                   })+
@@ -1442,6 +1540,24 @@ macro_rules! def_machine_debug {
   };  // end @impl_fn_handle_event
 
   //
+  //  @event_internal_state_pattern
+  //
+  ( @event_internal_state_pattern
+    $source:ident { $($state_data:ident),* }
+  ) => {
+    &mut StateData::$source {$(ref mut $state_data,)*..}
+  };
+
+  //
+  //  @event_internal_state_pattern: not an internal event
+  //
+  ( @event_internal_state_pattern
+    * { $($state_data:ident),* }
+  ) => {
+    _
+  };
+
+  //
   //  @event_action_external
   //
   ( @event_action_external
@@ -1454,8 +1570,31 @@ macro_rules! def_machine_debug {
   //  @event_action_external: not an external event
   //
   ( @event_action_external
-    event $event:ident <$source:ident> $($action:block)*
+    event $event:ident <$source:tt> $($action:block)*
   ) => { unreachable!("not an external event") };
+
+  //
+  //  @event_action_external: not an external event
+  //
+  ( @event_action_external
+    event $event:ident <*> => <$target:ident> $($action:block)*
+  ) => { unreachable!("not an external event") };
+
+  //
+  //  @event_action_universal
+  //
+  ( @event_action_universal
+    event $event:ident <*> => <$target:ident> $($action:block)*
+  ) => {
+    $($action)*
+  };
+
+  //
+  //  @event_action_universal: not an universal event
+  //
+  ( @event_action_universal
+    event $event:ident <$source:ident> $(=> <$target:ident>)* $($action:block)*
+  ) => { unreachable!("not an universal event") };
 
   //
   //  @event_action_internal
@@ -1470,7 +1609,7 @@ macro_rules! def_machine_debug {
   //  @event_action_internal: not an internal event
   //
   ( @event_action_internal
-    event $event:ident <$source:ident> => <$target:ident> $($action:block)*
+    event $event:ident <$source:tt> => <$target:ident> $($action:block)*
   ) => { unreachable!("not an internal event") };
 
   //
@@ -1485,6 +1624,13 @@ macro_rules! def_machine_debug {
   //
   ( @event_transition <$source:ident> ) => {
     Transition::Internal (StateId::$source)
+  };
+
+  //
+  //  @event_transition: universal
+  //
+  ( @event_transition <*> => <$target:ident> ) => {
+    Transition::Universal (StateId::$target)
   };
 
   //
@@ -1522,7 +1668,7 @@ macro_rules! def_machine_debug {
         ))+
       ]
       EVENTS [
-        $(event $event:ident <$source:ident> $(=> <$target:ident>)*
+        $(event $event:ident <$source:tt> $(=> <$target:ident>)*
           $({ $($state_data:ident),* } => $action:block)*
         )+
       ]
@@ -1587,8 +1733,9 @@ macro_rules! def_machine_debug {
 
     #[derive(Debug,PartialEq)]
     pub enum Transition {
-      Internal (StateId),
-      External (StateId, StateId)
+      Internal  (StateId),
+      External  (StateId, StateId),
+      Universal (StateId)
     }
 
     #[derive(Clone,Debug,PartialEq)]
@@ -1809,7 +1956,7 @@ macro_rules! def_machine_nodefault_debug {
         ))+
       ]
       EVENTS [
-        $(event $event:ident <$source:ident> $(=> <$target:ident>)*
+        $(event $event:ident <$source:tt> $(=> <$target:ident>)*
           $({ $($state_data:ident),* } => $action:block)*
         )+
       ]
@@ -2030,7 +2177,7 @@ macro_rules! def_machine_nodefault_debug {
         ))+
       ]
       EVENTS [
-        $(event $event:ident <$source:ident> $(=> <$target:ident>)*
+        $(event $event:ident <$source:tt> $(=> <$target:ident>)*
           $({ $($state_data:ident),* } => $action:block)*
         )+
       ]
