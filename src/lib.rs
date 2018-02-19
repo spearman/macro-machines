@@ -1,8 +1,10 @@
+//! State machine macros with logging and graphviz dotfile output
+
 extern crate escapade;
 
 #[macro_use] mod macro_def;
 
-/// Methods mostly relating to dotfile creation.
+/// Methods for dotfile creation
 pub trait MachineDotfile {
   // required
   fn name()                       -> &'static str;
