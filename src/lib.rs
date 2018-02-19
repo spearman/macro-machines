@@ -8,7 +8,7 @@ extern crate escapade;
 pub trait MachineDotfile {
   // required
   fn name()                       -> &'static str;
-  fn type_vars()                  -> &'static str;
+  fn type_vars()                  -> Vec <String>;
   fn extended_state_names()       -> Vec <&'static str>;
   fn extended_state_types()       -> Vec <&'static str>;
   fn extended_state_defaults()    -> Vec <&'static str>;
@@ -23,15 +23,22 @@ pub trait MachineDotfile {
   fn event_sources()              -> Vec <&'static str>;
   fn event_targets()              -> Vec <&'static str>;
   fn event_actions()              -> Vec <&'static str>;
-  // provided
+  // provided: these are intended to be called by the user
+  /// Generate a dotfile for the state machine that shows default expressions
+  /// for state fields and extended state fields
   fn dotfile() -> String where Self : Sized {
     machine_dotfile::<Self> (false, false)
   }
+  /// Generate a dotfile for the state machine that hides default expressions
+  /// for state fields and extended state fields
   fn dotfile_hide_defaults() -> String where Self : Sized {
     machine_dotfile::<Self> (true, false)
   }
-  /// &#9888;: calling this this function constructs default values from default
-  /// expressions and pretty prints them.
+  /// Generate a dotfile for the state machine that pretty prints the *values*
+  /// of default expressions for state fields and extended state fields.
+  ///
+  /// &#9888; Calling this this function evaluates default expressions and
+  /// pretty prints the resulting values at runtime.
   fn dotfile_pretty_defaults() -> String where Self : Sized {
     machine_dotfile::<Self> (false, true)
   }
@@ -53,7 +60,9 @@ fn machine_dotfile <M : MachineDotfile>
   use escapade::Escapable;
 
   let mut s = String::new();
+  //
   // begin graph
+  //
   s.push_str (
     "digraph {\n  \
        rankdir=LR\n  \
@@ -69,7 +78,14 @@ fn machine_dotfile <M : MachineDotfile>
     let mut s = String::new();
     s.push_str (M::name());
     if !M::type_vars().is_empty() {
-      s.push_str (format!("<{}>", M::type_vars()).as_str());
+      s.push_str ("<");
+      let type_vars = M::type_vars();
+      for string in type_vars {
+        s.push_str (string.as_str());
+        s.push_str (",");
+      }
+      assert_eq!(s.pop(), Some (','));
+      s.push_str (">");
     }
     s
   };
@@ -209,7 +225,7 @@ fn machine_dotfile <M : MachineDotfile>
         let spacer2 : String = std::iter::repeat (' ')
           .take(longest_typename - state_data_types[i].len())
           .collect();
-        if !hide_defaults {
+        if !hide_defaults && !state_data_defaults[i].is_empty() {
           data_string.push_str (format!(
             "{}{} : {}{} = {}",
             f, spacer1, state_data_types[i], spacer2, state_data_defaults[i]
@@ -315,4 +331,4 @@ fn machine_dotfile <M : MachineDotfile>
     "  }\n\
     }");
   s
-} // end fn dotfile
+} // end fn machine_dotfile

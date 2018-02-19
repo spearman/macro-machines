@@ -90,15 +90,20 @@ macro_rules! def_machine {
       for $machine $(<$($type_var),+>)*
     where
     $($(
-      $type_var : ::std::fmt::Debug,
       $($($type_var : $type_constraint),+)*
     ),+)*
     {
       fn name() -> &'static str {
         stringify!($machine)
       }
-      fn type_vars() -> &'static str {
-        stringify!($($($type_var),+)*)
+      fn type_vars() -> Vec <String> {
+        let mut _v = Vec::new();
+        $($(
+        _v.push (format!(
+          "{} = {}", stringify!($type_var),
+            unsafe { ::std::intrinsics::type_name::<$type_var>() }));
+        )+)*
+        _v
       }
       fn extended_state_names() -> Vec <&'static str> {
         let mut _v = Vec::new();
@@ -815,15 +820,20 @@ macro_rules! def_machine_nodefault {
       for $machine $(<$($type_var),+>)*
     where
     $($(
-      $type_var : ::std::fmt::Debug,
       $($($type_var : $type_constraint),+)*
     ),+)*
     {
       fn name() -> &'static str {
         stringify!($machine)
       }
-      fn type_vars() -> &'static str {
-        stringify!($($($type_var),+)*)
+      fn type_vars() -> Vec <String> {
+        let mut _v = Vec::new();
+        $($(
+        _v.push (format!(
+          "{} = {}", stringify!($type_var),
+            unsafe { ::std::intrinsics::type_name::<$type_var>() }));
+        )+)*
+        _v
       }
       fn extended_state_names() -> Vec <&'static str> {
         let mut _v = Vec::new();
@@ -1121,8 +1131,14 @@ macro_rules! def_machine_debug {
       fn name() -> &'static str {
         stringify!($machine)
       }
-      fn type_vars() -> &'static str {
-        stringify!($($($type_var),+)*)
+      fn type_vars() -> Vec <String> {
+        let mut _v = Vec::new();
+        $($(
+        _v.push (format!(
+          "{} = {}", stringify!($type_var),
+            unsafe { ::std::intrinsics::type_name::<$type_var>() }));
+        )+)*
+        _v
       }
       fn extended_state_names() -> Vec <&'static str> {
         let mut _v = Vec::new();
@@ -1850,8 +1866,14 @@ macro_rules! def_machine_nodefault_debug {
       fn name() -> &'static str {
         stringify!($machine)
       }
-      fn type_vars() -> &'static str {
-        stringify!($($($type_var),+)*)
+      fn type_vars() -> Vec <String> {
+        let mut _v = Vec::new();
+        $($(
+        _v.push (format!(
+          "{} = {}", stringify!($type_var),
+            unsafe { ::std::intrinsics::type_name::<$type_var>() }));
+        )+)*
+        _v
       }
       fn extended_state_names() -> Vec <&'static str> {
         let mut _v = Vec::new();
