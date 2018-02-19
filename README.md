@@ -42,7 +42,7 @@ def_machine_debug!{
 }
 
 fn main () {
-  use macro_machines::*;
+  use macro_machines::HandleEventException;
 
   let mut m = M::initial();
   let e = EventId::A.into();
@@ -56,6 +56,7 @@ Generate a dotfile and write to file:
 
 ```rust
   use std::io::Write;
+  use macro_machines::MachineDotfile;
   let mut f = std::fs::File::create ("minimal.dot").unwrap();
   f.write_all (M::dotfile().as_bytes()).unwrap();
   drop (f);
@@ -64,3 +65,5 @@ Generate a dotfile and write to file:
 Rendered as PNG with `$ dot -Tpng minimal.dot > minimal.png`:
 
 ![](minimal.png)
+
+See `./examples/` for examples of more complex state machines.

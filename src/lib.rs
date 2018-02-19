@@ -1,4 +1,6 @@
 //! State machine macros with logging and graphviz dotfile output
+//!
+//! [Repository](https://github.com/spearman/macro-machines)
 
 extern crate escapade;
 
