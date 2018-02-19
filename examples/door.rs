@@ -4,8 +4,6 @@
 #[macro_use] extern crate unwrap;
 #[macro_use] extern crate log;
 extern crate simplelog;
-extern crate colored;
-extern crate escapade;
 
 #[macro_use] extern crate macro_machines;
 
@@ -45,28 +43,25 @@ pub const LOG_LEVEL_FILTER : simplelog::LevelFilter
 
 fn main () {
   use std::io::Write;
-  use colored::Colorize;
+  use macro_machines::MachineDotfile;
   let example_name = std::path::PathBuf::from (std::env::args().next().unwrap())
     .file_name().unwrap().to_str().unwrap().to_string();
-  println!("{}", format!("{} main...", example_name)
-    .green().bold());
+  println!("{}", format!("{} main...", example_name));
 
-  unwrap!{
-    simplelog::TermLogger::init (
-      LOG_LEVEL_FILTER,
-      simplelog::Config::default())
-  };
+  unwrap!(
+    simplelog::TermLogger::init (LOG_LEVEL_FILTER, simplelog::Config::default())
+  );
 
   Door::report();
 
   let dotfile_name = format!("{}.dot", example_name);
   let mut f = unwrap!{ std::fs::File::create (dotfile_name) };
-  unwrap!{ f.write_all (Door::dotfile().as_bytes()) };
+  unwrap!(f.write_all (Door::dotfile().as_bytes()));
   std::mem::drop (f);
 
   let dotfile_name = format!("{}-hide-defaults.dot", example_name);
-  let mut f = unwrap!{ std::fs::File::create (dotfile_name) };
-  unwrap!{ f.write_all (Door::dotfile_hide_defaults().as_bytes()) };
+  let mut f = unwrap!(std::fs::File::create (dotfile_name));
+  unwrap!(f.write_all (Door::dotfile_hide_defaults().as_bytes()));
   std::mem::drop (f);
 
   let mut door = Door::initial();
@@ -84,6 +79,5 @@ fn main () {
   unwrap!(door.handle_event (e));
   println!("door: {:?}", door);
 
-  println!("{}", format!("...{} main", example_name)
-    .green().bold());
+  println!("{}", format!("...{} main", example_name));
 }

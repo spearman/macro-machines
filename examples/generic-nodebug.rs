@@ -7,8 +7,8 @@ extern crate simplelog;
 
 #[macro_use] extern crate macro_machines;
 
-def_machine_debug!{
-  machine M {
+def_machine_nodefault!{
+  machine G <X> {
     STATES [
       state S ()
       state T ()
@@ -16,9 +16,16 @@ def_machine_debug!{
     EVENTS [
       event A <S> => <T>
     ]
-    EXTENDED []
+    EXTENDED [
+      x  : X,
+      rx : std::sync::mpsc::Receiver <X> = std::sync::mpsc::channel().1
+    ]
     initial_state: S
   }
+}
+
+struct Nodebug {
+  _foo : u8
 }
 
 pub const LOG_LEVEL_FILTER : simplelog::LevelFilter
@@ -26,7 +33,7 @@ pub const LOG_LEVEL_FILTER : simplelog::LevelFilter
 
 fn main () {
   use std::io::Write;
-  use macro_machines::{HandleEventException, MachineDotfile};
+  use macro_machines::*;
   let example_name = std::path::PathBuf::from (std::env::args().next().unwrap())
     .file_name().unwrap().to_str().unwrap().to_string();
   println!("{}", format!("{} main...", example_name));
@@ -35,22 +42,26 @@ fn main () {
     simplelog::TermLogger::init (LOG_LEVEL_FILTER, simplelog::Config::default())
   );
 
-  M::report();
+  G::<Nodebug>::report();
+  G::<(Nodebug,Nodebug,Nodebug)>::report();
 
   let dotfile_name = format!("{}.dot", example_name);
   let mut f = unwrap!(std::fs::File::create (dotfile_name));
-  unwrap!(f.write_all (M::dotfile().as_bytes()));
+  unwrap!(f.write_all (G::<f64>::dotfile().as_bytes()));
   std::mem::drop (f);
 
-  let mut m = M::initial();
-  println!("m: {:?}", m);
+  //let mut g = G::<std::sync::mpsc::Receiver <f64>>::initial();
+  let mut g = G::<f64>::new (
+    ExtendedState::new (Some (Default::default()), None
+  ).unwrap());
+  println!("g state: {:?}", g.state().id());
 
   let e = EventId::A.into();
-  unwrap!(m.handle_event (e));
-  println!("m: {:?}", m);
+  unwrap!(g.handle_event (e));
+  println!("g state: {:?}", g.state().id());
 
   let e = EventId::A.into();
-  assert_eq!(m.handle_event (e), Err (HandleEventException::WrongState));
+  assert_eq!(g.handle_event (e), Err (HandleEventException::WrongState));
 
   println!("{}", format!("...{} main", example_name));
 }

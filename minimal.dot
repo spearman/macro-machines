@@ -7,8 +7,7 @@ digraph {
     shape=record
     style=rounded
     fontname="Sans Bold Italic"
-    INITIAL [label="", shape=circle, width=0.2,
-      style=filled, fillcolor=black]
+    INITIAL [label="", shape=circle, width=0.2, style=filled, fillcolor=black]
     S [label=<<B>S</B>>]
     T [label=<<B>T</B>>]
     INITIAL -> S

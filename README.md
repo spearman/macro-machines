@@ -7,12 +7,11 @@
 ## Usage
 
 Using the macros defined by this library requires the additional external
-dependencies:
+dependency on the `log` crate:
 
 ```toml
 [dependencies]
 log = "0.4.*"
-escapade = "0.0.*"
 ```
 
 and the following directives in the crate root:
@@ -21,7 +20,6 @@ and the following directives in the crate root:
 #![feature(const_fn)]
 #![feature(core_intrinsics)]
 
-extern crate escapade;
 #[macro_use] extern crate log;
 #[macro_use] extern crate macro_machines;
 ```
