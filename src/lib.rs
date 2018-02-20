@@ -7,6 +7,8 @@ extern crate escapade;
 #[macro_use] mod macro_def;
 
 /// Methods for dotfile creation
+// TODO: if we had a proper Machine trait with associated state and event ID
+// types, some of this would be redundant
 pub trait MachineDotfile {
   // required
   fn name()                       -> &'static str;
