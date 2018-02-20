@@ -11,6 +11,6 @@ digraph {
     S [label=<<B>S</B>>]
     T [label=<<B>T</B>>]
     INITIAL -> S
-    "S" -> T [label=<<FONT FACE="Sans Italic">A</FONT>>]
+    "S" -> "T" [label=<<FONT FACE="Sans Italic">A</FONT>>]
   }
 }

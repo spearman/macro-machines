@@ -276,48 +276,47 @@ fn machine_dotfile <M : MachineDotfile>
   // for each event: transition edge
   for (i, event) in M::events().into_iter().enumerate() {
     let source = event_sources[i];
-    let target = event_targets[i];
+    let mut target = event_targets[i];
     let action = event_actions[i];
-    // external and universal transitions
-    if !target.is_empty() {
-      if source == "*" {
-        universal = true;
-      }
-      s.push_str (format!(
-        "    \"{}\" -> {} [label=<<FONT FACE=\"Sans Italic\">{}</FONT>",
-        source, target, event
-      ).as_str());
+    if target.is_empty() {  // internal transition source == target
+      target = source;
+    }
 
-      let mut mono_font = false;
-      // params
-      // TODO
-      // guards
-      // TODO
+    if source == "*" {
+      universal = true;
+    }
+    s.push_str (format!(
+      "    \"{}\" -> \"{}\" [label=<<FONT FACE=\"Sans Italic\">{}</FONT>",
+      source, target, event
+    ).as_str());
 
-      if !action.is_empty() {
-        match action {
-          // don't render empty actions
-          "{}" | "{ }" => {}
-          _ => {
-            if !mono_font {
-              s.push_str ("<FONT FACE=\"Mono\"><BR/>");
-              mono_font = true;
-            }
-            // TODO: different formatting if params or guards were present
-            //action = "  ".to_string() + action.as_str();
-            let action = action.escape().into_inner();
-            s.push_str (format!("{}", action).as_str());
+    let mut mono_font = false;
+    // params
+    // TODO
+    // guards
+    // TODO
+
+    if !action.is_empty() {
+      match action {
+        // don't render empty actions
+        "{}" | "{ }" => {}
+        _ => {
+          if !mono_font {
+            s.push_str ("<FONT FACE=\"Mono\"><BR/>");
+            mono_font = true;
           }
+          // TODO: different formatting if params or guards were present
+          //action = "  ".to_string() + action.as_str();
+          let action = action.escape().into_inner();
+          s.push_str (format!("{}", action).as_str());
         }
       }
+    }
 
-      if mono_font {
-        s.push_str ("</FONT>");
-      }
-      s.push_str (">]\n");
-    } // end external transition
-    // TODO internal transitions
-
+    if mono_font {
+      s.push_str ("</FONT>");
+    }
+    s.push_str (">]\n");
   } // end for each event: transition edge
 
   if universal {

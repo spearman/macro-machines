@@ -127,7 +127,7 @@ macro_rules! def_machine {
           if !default_expr.is_empty() {
             default_expr
           } else {
-            "Default::default()"  // TODO: make this $ext_type::default() ?
+            concat!(stringify!($ext_type), "::default()")
           }
         });
         )*
@@ -174,7 +174,7 @@ macro_rules! def_machine {
             if !default_expr.is_empty() {
               default_expr
             } else {
-              "Default::default()"  // TODO: make this $data_type::default() ?
+              concat!(stringify!($data_type), "::default()")
             }
           });
           )*
@@ -1236,7 +1236,7 @@ macro_rules! def_machine_debug {
           if !default_expr.is_empty() {
             default_expr
           } else {
-            "Default::default()"  // TODO: make this $ext_type::default() ?
+            concat!(stringify!($ext_type), "::default()")
           }
         });
         )*
@@ -1283,7 +1283,7 @@ macro_rules! def_machine_debug {
             if !default_expr.is_empty() {
               default_expr
             } else {
-              "Default::default()"  // TODO: make this $data_type::default() ?
+              concat!(stringify!($data_type), "::default()")
             }
           });
           )*
