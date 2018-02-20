@@ -75,14 +75,14 @@ macro_rules! def_machine {
     {
       pub fn initial() -> Self {
         trace!("{}::initial", stringify!($machine));
-        let mut _new = Self {
-          state:          State::initial(),
-          extended_state: ExtendedState::initial()
-        };
-        $(let $self_reference = _new;)*
-        $($($initial_action)*)*
-        $(_new = $self_reference;)*
-        _new
+        let mut extended_state = ExtendedState::initial();
+        let state = StateId::$initial.to_state (&mut extended_state);
+        let mut _initial = Self { state, extended_state };
+        {
+          $(let $self_reference = &mut _initial;)*
+          $($($initial_action)*)*
+        }
+        _initial
       }
     }
 
@@ -132,6 +132,9 @@ macro_rules! def_machine {
         });
         )*
         _v
+      }
+      fn self_reference() -> &'static str {
+        stringify!($($self_reference)*)
       }
       fn states() -> Vec <&'static str> {
         let mut v = Vec::new();
@@ -260,7 +263,7 @@ macro_rules! def_machine {
     $(($(
       $ext_name:ident : $ext_type:ty $(= $ext_default:expr)*
     ),*))*
-      $(where let $self_reference:ident = self)*
+    $(@ $self_reference:ident)*
     {
       STATES [
         $(state $state:ident (
@@ -308,13 +311,12 @@ macro_rules! def_machine {
     }
 
   };
-  //  end alternate syntax
 
   //
   //  @impl_fn_handle_event
   //
   ( @impl_fn_handle_event
-    machine $machine:ident $(where let $self_reference:ident = self)* {
+    machine $machine:ident {
       STATES [
         $(state $state:ident (
           $($data_name:ident : $data_type:ty $(= $data_default:expr)*),*
@@ -328,6 +330,7 @@ macro_rules! def_machine {
       EXTENDED [
         $($ext_name:ident : $ext_type:ty $(= $ext_default:expr)*),*
       ]
+      $(self_reference: $self_reference:ident)*
     }
 
   ) => {
@@ -344,7 +347,7 @@ macro_rules! def_machine {
         Transition::Universal (target_id) => {
           trace!("<<< Ok: {:?} => {:?}", self.state.id, target_id);
           {
-            $(let $self_reference = &mut*self;)*
+            $(let $self_reference = &mut *self;)*
             match event.id {
               $(EventId::$event => {
                 // only expands universal actions, unreachable otherwise
@@ -355,7 +358,8 @@ macro_rules! def_machine {
               })+
             }
           }
-          self.state = target_id.into();
+          let state  = target_id.to_state (&mut self.extended_state);
+          self.state = state;
           Ok (())
         }
 
@@ -403,7 +407,7 @@ macro_rules! def_machine {
           if self.state.id == source_id {
             trace!("<<< Ok: {:?} => {:?}", source_id, target_id);
             {
-              $(let $self_reference = &mut*self;)*
+              $(let $self_reference = &mut *self;)*
               match event.id {
                 $(EventId::$event => {
                   // only expands external actions, unreachable otherwise
@@ -414,7 +418,8 @@ macro_rules! def_machine {
                 })+
               }
             }
-            self.state = target_id.into();
+            let state  = target_id.to_state (&mut self.extended_state);
+            self.state = state;
             Ok (())
           } else {
             trace!("<<< Err: external transition: \
@@ -533,6 +538,19 @@ macro_rules! def_machine {
   //
   ( @expr_default ) => { Default::default() };
 
+// FIXME
+/*
+  //
+  //  @expr_default_scope: override default
+  //
+  ( @expr_default_scope [$($reference:ident)*] $default:expr ) => { $default };
+
+  //
+  //  @expr_default_scope: use default
+  //
+  ( @expr_default_scope [$($reference:ident)*] ) => { Default::default() };
+*/
+
   //
   //  @expr_option: Some
   //
@@ -640,11 +658,11 @@ macro_rules! def_machine {
         println!("...{} report", machine_name);
       }
 
-      pub fn new (extended_state : ExtendedState $(<$($type_var),+>)*) -> Self {
-        Self {
-          state: State::initial(),
-          extended_state
-        }
+      pub fn new (mut extended_state : ExtendedState $(<$($type_var),+>)*)
+        -> Self
+      {
+        let state = StateId::$initial.to_state (&mut extended_state);
+        Self { state, extended_state }
       }
 
       #[allow(dead_code)]
@@ -669,7 +687,7 @@ macro_rules! def_machine {
 
       def_machine!{
         @impl_fn_handle_event
-        machine $machine $(where let $self_reference = self)* {
+        machine $machine {
           STATES [
             $(state $state ($($data_name : $data_type $(= $data_default)*),*))+
           ]
@@ -681,6 +699,7 @@ macro_rules! def_machine {
           EXTENDED [
             $($ext_name : $ext_type $(= $ext_default)*),*
           ]
+          $(self_reference: $self_reference)* 
         }
       }
 
@@ -720,7 +739,7 @@ macro_rules! def_machine {
       fn drop (&mut self) {
         trace!("{}::drop", stringify!($machine));
         let _state_id = self.state.id.clone();
-        $(let $self_reference = self;)*
+        $(let $self_reference = &mut *self;)*
         $(
         if _state_id != StateId::$terminal {
           trace!("<<< current state ({:?}) != terminal state ({:?})",
@@ -735,11 +754,6 @@ macro_rules! def_machine {
 
     impl State {
       #[inline]
-      pub fn initial() -> Self {
-        StateId::initial().into()
-      }
-
-      #[inline]
       pub fn id (&self) -> &StateId {
         &self.id
       }
@@ -747,41 +761,6 @@ macro_rules! def_machine {
       #[inline]
       pub fn data (&self) -> &StateData {
         &self.data
-      }
-    }
-
-    impl From <StateId> for State {
-      fn from (id : StateId) -> Self {
-        State {
-          id:   id.clone(),
-          data: id.into()
-        }
-      }
-    }
-
-    impl StateData {
-      #[inline]
-      pub fn initial() -> Self {
-        StateId::initial().into()
-      }
-
-      $(
-      #[inline]
-      pub fn terminal() -> Self {
-        // we use the metavariable here to take advantage of the
-        // zero-or-one repetition
-        StateId::$terminal.into()
-      }
-      )*
-    }
-
-    impl From <StateId> for StateData {
-      fn from (id : StateId) -> Self {
-        match id {
-          $(StateId::$state => StateData::$state {
-            $($data_name: def_machine!(@expr_default $($data_default)*)),*
-          }),+
-        }
       }
     }
 
@@ -796,6 +775,27 @@ macro_rules! def_machine {
         StateId::$terminal
       }
       )*
+      pub fn to_state $(<$($type_var),+>)* (self,
+        _extended_state : &mut ExtendedState$(<$($type_var),+>)*) -> State
+      where
+      $($(
+        $($($type_var : $type_constraint),+)*
+      ),+)*
+      {
+        $(let $self_reference = _extended_state;)*
+        match self {
+          $(StateId::$state => {
+            State {
+              id:   self,
+              data: StateData::$state {
+                $($data_name:
+                  def_machine!(@expr_default $($data_default)*)
+                ),*
+              }
+            }
+          })+
+        }
+      }
     }
 
     impl EventId {
@@ -930,6 +930,9 @@ macro_rules! def_machine_nodefault {
         )*
         _v
       }
+      fn self_reference() -> &'static str {
+        stringify!($($self_reference)*)
+      }
       fn states() -> Vec <&'static str> {
         let mut v = Vec::new();
         $(
@@ -970,16 +973,13 @@ macro_rules! def_machine_nodefault {
         })+
         v
       }
-      /// &#9888; This function creates default values for each state data field
-      /// and creates a pretty printed string of the value
+      /// This version does not evaluate expressions, only pretty prints them
       fn state_data_pretty_defaults() -> Vec <Vec <String>> {
         let mut v = Vec::new();
         $({
           let mut _w = Vec::new();
           $(
-          let default_val : $data_type
-            = def_machine!(@expr_default $($data_default)*);
-          _w.push (format!("{:#?}", default_val));
+          _w.push (format!("{:#?}", stringify!($($data_default)*)));
           )*
           v.push (_w);
         })+
@@ -1054,7 +1054,7 @@ macro_rules! def_machine_nodefault {
     $(($(
       $ext_name:ident : $ext_type:ty $(= $ext_default:expr)*
     ),*))*
-      $(where let $self_reference:ident = self)*
+    $(@ $self_reference:ident)*
     {
       STATES [
         $(state $state:ident (
@@ -1183,14 +1183,14 @@ macro_rules! def_machine_debug {
     {
       pub fn initial() -> Self {
         trace!("{}::initial", stringify!($machine));
-        let mut _new = Self {
-          state:          State::initial(),
-          extended_state: ExtendedState::initial()
-        };
-        $(let $self_reference = _new;)*
-        $($($initial_action)*)*
-        $(_new = $self_reference;)*
-        _new
+        let mut extended_state = ExtendedState::initial();
+        let state = StateId::$initial.to_state (&mut extended_state);
+        let mut _initial = Self { state, extended_state };
+        {
+          $(let $self_reference = &mut _initial;)*
+          $($($initial_action)*)*
+        }
+        _initial
       }
     }
 
@@ -1241,6 +1241,9 @@ macro_rules! def_machine_debug {
         });
         )*
         _v
+      }
+      fn self_reference() -> &'static str {
+        stringify!($($self_reference)*)
       }
       fn states() -> Vec <&'static str> {
         let mut v = Vec::new();
@@ -1357,6 +1360,7 @@ macro_rules! def_machine_debug {
         }
       }
     }
+
   };
   //  end main interface
 
@@ -1370,7 +1374,7 @@ macro_rules! def_machine_debug {
     $(($(
       $ext_name:ident : $ext_type:ty $(= $ext_default:expr)*
     ),*))*
-      $(where let $self_reference:ident = self)*
+    $(@ $self_reference:ident)*
     {
       STATES [
         $(state $state:ident (
@@ -1418,13 +1422,12 @@ macro_rules! def_machine_debug {
     }
 
   };
-  //  end alternate syntax
 
   //
   //  @impl_fn_handle_event
   //
   ( @impl_fn_handle_event
-    machine $machine:ident $(where let $self_reference:ident = self)* {
+    machine $machine:ident {
       STATES [
         $(state $state:ident (
           $($data_name:ident : $data_type:ty $(= $data_default:expr)*),*
@@ -1438,6 +1441,7 @@ macro_rules! def_machine_debug {
       EXTENDED [
         $($ext_name:ident : $ext_type:ty $(= $ext_default:expr)*),*
       ]
+      $(self_reference: $self_reference:ident)*
     }
 
   ) => {
@@ -1454,7 +1458,7 @@ macro_rules! def_machine_debug {
         Transition::Universal (target_id) => {
           trace!("<<< Ok: {:?} => {:?}", self.state.id, target_id);
           {
-            $(let $self_reference = &mut*self;)*
+            $(let $self_reference = &mut *self;)*
             match event.id {
               $(EventId::$event => {
                 // only expands universal actions, unreachable otherwise
@@ -1465,7 +1469,8 @@ macro_rules! def_machine_debug {
               })+
             }
           }
-          self.state = target_id.into();
+          let state  = target_id.to_state (&mut self.extended_state);
+          self.state = state;
           Ok (())
         }
 
@@ -1513,7 +1518,7 @@ macro_rules! def_machine_debug {
           if self.state.id == source_id {
             trace!("<<< Ok: {:?} => {:?}", source_id, target_id);
             {
-              $(let $self_reference = &mut*self;)*
+              $(let $self_reference = &mut *self;)*
               match event.id {
                 $(EventId::$event => {
                   // only expands external actions, unreachable otherwise
@@ -1524,7 +1529,8 @@ macro_rules! def_machine_debug {
                 })+
               }
             }
-            self.state = target_id.into();
+            let state  = target_id.to_state (&mut self.extended_state);
+            self.state = state;
             Ok (())
           } else {
             trace!("<<< Err: external transition: \
@@ -1535,7 +1541,7 @@ macro_rules! def_machine_debug {
         }
 
       }
-    }
+    } // end handle event
 
   };  // end @impl_fn_handle_event
 
@@ -1757,11 +1763,11 @@ macro_rules! def_machine_debug {
         println!("...{} report", machine_name);
       }
 
-      pub fn new (extended_state : ExtendedState $(<$($type_var),+>)*) -> Self {
-        Self {
-          state: State::initial(),
-          extended_state
-        }
+      pub fn new (mut extended_state : ExtendedState $(<$($type_var),+>)*)
+        -> Self
+      {
+        let state = StateId::$initial.to_state (&mut extended_state);
+        Self { state, extended_state }
       }
 
       #[allow(dead_code)]
@@ -1778,7 +1784,7 @@ macro_rules! def_machine_debug {
 
       def_machine_debug!{
         @impl_fn_handle_event
-        machine $machine $(where let $self_reference = self)* {
+        machine $machine {
           STATES [
             $(state $state ($($data_name : $data_type $(= $data_default)*),*))+
           ]
@@ -1790,6 +1796,7 @@ macro_rules! def_machine_debug {
           EXTENDED [
             $($ext_name : $ext_type $(= $ext_default)*),*
           ]
+          $(self_reference: $self_reference)*
         }
       }
 
@@ -1832,7 +1839,7 @@ macro_rules! def_machine_debug {
       fn drop (&mut self) {
         trace!("{}::drop", stringify!($machine));
         let _state_id = self.state.id.clone();
-        $(let $self_reference = self;)*
+        $(let $self_reference = &mut *self;)*
         $(
         if _state_id != StateId::$terminal {
           trace!("<<< current state ({:?}) != terminal state ({:?})",
@@ -1847,11 +1854,6 @@ macro_rules! def_machine_debug {
 
     impl State {
       #[inline]
-      pub fn initial() -> Self {
-        StateId::initial().into()
-      }
-
-      #[inline]
       pub fn id (&self) -> &StateId {
         &self.id
       }
@@ -1859,41 +1861,6 @@ macro_rules! def_machine_debug {
       #[inline]
       pub fn data (&self) -> &StateData {
         &self.data
-      }
-    }
-
-    impl From <StateId> for State {
-      fn from (id : StateId) -> Self {
-        State {
-          id:   id.clone(),
-          data: id.into()
-        }
-      }
-    }
-
-    impl StateData {
-      #[inline]
-      pub fn initial() -> Self {
-        StateId::initial().into()
-      }
-
-      $(
-      #[inline]
-      pub fn terminal() -> Self {
-        // we use the metavariable here to take advantage of the
-        // zero-or-one repetition
-        StateId::$terminal.into()
-      }
-      )*
-    }
-
-    impl From <StateId> for StateData {
-      fn from (id : StateId) -> Self {
-        match id {
-          $(StateId::$state => StateData::$state {
-            $($data_name: def_machine_debug!(@expr_default $($data_default)*)),*
-          }),+
-        }
       }
     }
 
@@ -1908,6 +1875,28 @@ macro_rules! def_machine_debug {
         StateId::$terminal
       }
       )*
+      pub fn to_state $(<$($type_var),+>)* (self,
+        _extended_state : &mut ExtendedState$(<$($type_var),+>)*) -> State
+      where
+      $($(
+        $type_var : ::std::fmt::Debug,
+        $($($type_var : $type_constraint),+)*
+      ),+)*
+      {
+        $(let $self_reference = _extended_state;)*
+        match self {
+          $(StateId::$state => {
+            State {
+              id:   self,
+              data: StateData::$state {
+                $($data_name:
+                  def_machine_debug!(@expr_default $($data_default)*)
+                ),*
+              }
+            }
+          })+
+        }
+      }
     }
 
     impl EventId {
@@ -2043,6 +2032,9 @@ macro_rules! def_machine_nodefault_debug {
         )*
         _v
       }
+      fn self_reference() -> &'static str {
+        stringify!($($self_reference)*)
+      }
       fn states() -> Vec <&'static str> {
         let mut v = Vec::new();
         $(
@@ -2083,16 +2075,13 @@ macro_rules! def_machine_nodefault_debug {
         })+
         v
       }
-      /// &#9888; This function creates default values for each state data field
-      /// and creates a pretty printed string of the value
+      /// This version does not evaluate expressions, only pretty prints them
       fn state_data_pretty_defaults() -> Vec <Vec <String>> {
         let mut v = Vec::new();
         $({
           let mut _w = Vec::new();
           $(
-          let default_val : $data_type
-            = def_machine_debug!(@expr_default $($data_default)*);
-          _w.push (format!("{:#?}", default_val));
+          _w.push (format!("{:#?}", stringify!($($data_default)*)));
           )*
           v.push (_w);
         })+
@@ -2157,6 +2146,7 @@ macro_rules! def_machine_nodefault_debug {
         })
       }
     }
+
   };
 
   //
@@ -2169,7 +2159,7 @@ macro_rules! def_machine_nodefault_debug {
     $(($(
       $ext_name:ident : $ext_type:ty $(= $ext_default:expr)*
     ),*))*
-      $(where let $self_reference:ident = self)*
+    $(@ $self_reference:ident)*
     {
       STATES [
         $(state $state:ident (

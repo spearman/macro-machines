@@ -12,6 +12,7 @@ dependency on the `log` crate:
 ```toml
 [dependencies]
 log = "0.4.*"
+macro_machines = "0.5.*"
 ```
 
 and the following directives in the crate root:

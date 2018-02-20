@@ -7,18 +7,22 @@ extern crate simplelog;
 
 #[macro_use] extern crate macro_machines;
 
+fn bar (u : u64) -> u64 {
+  u * 2
+}
+
 def_machine_nodefault_debug!{
-  machine G <X> {
+  G <X> (
+    x   : X,
+    rx  : std::sync::mpsc::Receiver <X> = std::sync::mpsc::channel().1,
+    foo : u64
+  ) @ _g {
     STATES [
       state S ()
-      state T ()
+      state T (t : u64 = bar (_g.foo), tt : u64 = bar (_g.foo + 1))
     ]
     EVENTS [
       event A <S> => <T>
-    ]
-    EXTENDED [
-      x  : X,
-      rx : std::sync::mpsc::Receiver <X> = std::sync::mpsc::channel().1
     ]
     initial_state: S
   }
@@ -49,8 +53,8 @@ fn main () {
 
   //let mut g = G::<std::sync::mpsc::Receiver <f64>>::initial();
   let mut g = G::<f64>::new (
-    ExtendedState::new (Some (Default::default()), None
-  ).unwrap());
+    ExtendedState::new (Some (Default::default()), None, Some (10)).unwrap()
+  );
   println!("g: {:?}", g);
 
   let e = EventId::A.into();

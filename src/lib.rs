@@ -16,6 +16,7 @@ pub trait MachineDotfile {
   fn extended_state_names()       -> Vec <&'static str>;
   fn extended_state_types()       -> Vec <&'static str>;
   fn extended_state_defaults()    -> Vec <&'static str>;
+  fn self_reference()   -> &'static str;
   fn states()                     -> Vec <&'static str>;
   fn state_data_names()           -> Vec <Vec <&'static str>>;
   fn state_data_types()           -> Vec <Vec <&'static str>>;
@@ -149,13 +150,18 @@ fn machine_dotfile <M : MachineDotfile>
     s.push_str (format!("{}", extended_string).as_str());
   } // end extended state
 
-  // extended state transitions
-  // TODO
-
   s.push_str ("<BR ALIGN=\"LEFT\"/>");
+  let self_reference = M::self_reference();
+  if !self_reference.is_empty() && mono_font {
+    s.push_str (format!("@ {}<BR ALIGN=\"CENTER\"/>", self_reference).as_str());
+  }
   if !extended_state_names.is_empty() {
     s.push_str ("\n      ");
   }
+
+  // extended state transitions
+  // TODO
+
   if mono_font {
     s.push_str ("</FONT><BR/>");
   }
@@ -269,6 +275,7 @@ fn machine_dotfile <M : MachineDotfile>
   // transitions (events)
   //
   // initial transition edge
+  // TODO: show initial action
   s.push_str (format!(
     "    INITIAL -> {}\n", M::state_initial()).as_str());
   let event_sources = M::event_sources();
@@ -329,6 +336,7 @@ fn machine_dotfile <M : MachineDotfile>
   }
 
   // terminal transition: node + edge
+  // TODO: show terminal action(s)
   let state_terminal = M::state_terminal();
   if !state_terminal.is_empty() {
     s.push_str (

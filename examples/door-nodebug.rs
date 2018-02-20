@@ -8,7 +8,7 @@ extern crate simplelog;
 #[macro_use] extern crate macro_machines;
 
 def_machine! {
-  Door (open_count : u64) where let _door = self {
+  Door (open_count : u64) @ _door {
     STATES [
       state Closed (knock_count : u64, code : u64 = 12345)
       state Opened ()
@@ -33,7 +33,9 @@ def_machine! {
         println!("open_count: {:?}", _door.as_ref().open_count);
         println!("goodbye")
       }
-      terminate_failure: { panic!("door was left: {:?}", _door.state().id()) }
+      terminate_failure: {
+        panic!("door was left: {:?}", _door.state().id())
+      }
     }
   }
 }
