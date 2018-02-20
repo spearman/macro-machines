@@ -66,4 +66,4 @@ Rendered as PNG with `$ dot -Tpng minimal.dot > minimal.png`:
 
 ![](minimal.png)
 
-See `./examples/` for examples of more complex state machines.
+For examples of more complex state machines, see the `./examples/` directory.
