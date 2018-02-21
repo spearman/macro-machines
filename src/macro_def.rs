@@ -347,6 +347,7 @@ macro_rules! def_machine {
         Transition::Universal (target_id) => {
           trace!("<<< Ok: {:?} => {:?}", self.state.id, target_id);
           {
+            // TODO: instead bring extended state variables into scope ?
             $(let $self_reference = &mut *self;)*
             match event.id {
               $(EventId::$event => {
@@ -669,6 +670,12 @@ macro_rules! def_machine {
       #[inline]
       pub fn state (&self) -> &State {
         &self.state
+      }
+
+      #[allow(dead_code)]
+      #[inline]
+      pub fn state_id (&self) -> StateId {
+        self.state().id().clone()
       }
 
       #[allow(dead_code)]
@@ -1774,6 +1781,12 @@ macro_rules! def_machine_debug {
       #[inline]
       pub fn state (&self) -> &State {
         &self.state
+      }
+
+      #[allow(dead_code)]
+      #[inline]
+      pub fn state_id (&self) -> StateId {
+        self.state().id().clone()
       }
 
       #[allow(dead_code)]
