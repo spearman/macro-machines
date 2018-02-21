@@ -662,8 +662,13 @@ macro_rules! def_machine {
       pub fn new (mut extended_state : ExtendedState $(<$($type_var),+>)*)
         -> Self
       {
-        let state = StateId::$initial.to_state (&mut extended_state);
-        Self { state, extended_state }
+        let state    = StateId::$initial.to_state (&mut extended_state);
+        let mut _new = Self { state, extended_state };
+        {
+          $(let $self_reference = &mut _new;)*
+          $($($initial_action)*)*
+        }
+        _new
       }
 
       #[allow(dead_code)]
@@ -1773,8 +1778,13 @@ macro_rules! def_machine_debug {
       pub fn new (mut extended_state : ExtendedState $(<$($type_var),+>)*)
         -> Self
       {
-        let state = StateId::$initial.to_state (&mut extended_state);
-        Self { state, extended_state }
+        let state    = StateId::$initial.to_state (&mut extended_state);
+        let mut _new = Self { state, extended_state };
+        {
+          $(let $self_reference = &mut _new;)*
+          $($($initial_action)*)*
+        }
+        _new
       }
 
       #[allow(dead_code)]
