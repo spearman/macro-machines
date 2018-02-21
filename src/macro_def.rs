@@ -358,7 +358,7 @@ macro_rules! def_machine {
               &mut ExtendedState { $(ref mut $ext_name,)*.. } => {
                 // map each event to an action
                 match event.params {
-                  $(EventParams::$event { $(ref $param_name,)*.. } => {
+                  $(EventParams::$event { $(ref mut $param_name,)*.. } => {
                     // only expands universal actions, unreachable otherwise
                     def_machine!{
                       @event_action_universal
@@ -383,7 +383,7 @@ macro_rules! def_machine {
               &mut ExtendedState { $(ref mut $ext_name,)*.. } => {
                 // map each event to an action
                 match event.params {
-                  $(EventParams::$event { $(ref $param_name,)*.. } => {
+                  $(EventParams::$event { $(ref mut $param_name,)*.. } => {
                     // for universal transitions there is no source state so
                     // this produces a wildcard pattern resulting in the
                     // last branch being unreachable
@@ -424,7 +424,7 @@ macro_rules! def_machine {
               &mut ExtendedState { $(ref mut $ext_name,)*.. } => {
                 // map each event to an action
                 match event.params {
-                  $(EventParams::$event { $(ref $param_name,)*.. } => {
+                  $(EventParams::$event { $(ref mut $param_name,)*.. } => {
                     // only expands external actions, unreachable otherwise
                     def_machine!{
                       @event_action_external
@@ -1537,7 +1537,7 @@ macro_rules! def_machine_debug {
               &mut ExtendedState { $(ref mut $ext_name,)*.. } => {
                 // map each event to an action
                 match event.params {
-                  $(EventParams::$event { $(ref $param_name,)*.. } => {
+                  $(EventParams::$event { $(ref mut $param_name,)*.. } => {
                     // only expands universal actions, unreachable otherwise
                     def_machine_debug!{
                       @event_action_universal
@@ -1562,7 +1562,7 @@ macro_rules! def_machine_debug {
               &mut ExtendedState { $(ref mut $ext_name,)*.. } => {
                 // map each event to an action
                 match event.params {
-                  $(EventParams::$event { $(ref $param_name,)*.. } => {
+                  $(EventParams::$event { $(ref mut $param_name,)*.. } => {
                     // for universal transitions there is no source state so
                     // this produces a wildcard pattern resulting in the
                     // last branch being unreachable
@@ -1603,7 +1603,7 @@ macro_rules! def_machine_debug {
               &mut ExtendedState { $(ref mut $ext_name,)*.. } => {
                 // map each event to an action
                 match event.params {
-                  $(EventParams::$event { $(ref $param_name,)*.. } => {
+                  $(EventParams::$event { $(ref mut $param_name,)*.. } => {
                     // only expands external actions, unreachable otherwise
                     def_machine_debug!{
                       @event_action_external
