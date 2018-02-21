@@ -10,14 +10,12 @@ extern crate simplelog;
 def_machine_debug!{
   machine M {
     STATES [
-      state R ()
       state S ()
-      state T ()
+      state T (sum : u64)
     ]
     EVENTS [
-      event ToR <*> => <R> ()
-      event ToT <*> => <T> ()
-      event ToS <T> => <S> ()
+      event A   <S> => <T> ()
+      event Foo <T> (add : u64) { sum } => { *sum += add }
     ]
     EXTENDED []
     initial_state: S
@@ -29,7 +27,7 @@ pub const LOG_LEVEL_FILTER : simplelog::LevelFilter
 
 fn main () {
   use std::io::Write;
-  use macro_machines::{HandleEventException, MachineDotfile};
+  use macro_machines::{/*HandleEventException,*/ MachineDotfile};
   let example_name = std::path::PathBuf::from (std::env::args().next().unwrap())
     .file_name().unwrap().to_str().unwrap().to_string();
   println!("{}", format!("{} main...", example_name));
@@ -48,12 +46,13 @@ fn main () {
   let mut m = M::initial();
   println!("m: {:?}", m);
 
-  let e = Event::from_id (EventId::ToR);
+  let e = Event::from_id (EventId::A);
   unwrap!(m.handle_event (e));
   println!("m: {:?}", m);
 
-  let e = Event::from_id (EventId::ToS);
-  assert_eq!(m.handle_event (e), Err (HandleEventException::WrongState));
+  let e = EventParams::Foo { add: 5 }.into();
+  unwrap!(m.handle_event (e));
+  println!("m: {:?}", m);
 
   println!("{}", format!("...{} main", example_name));
 }

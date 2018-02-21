@@ -7,10 +7,6 @@ extern crate simplelog;
 
 #[macro_use] extern crate macro_machines;
 
-fn bar (u : u64) -> u64 {
-  u * 2
-}
-
 def_machine_nodefault_debug!{
   G <X> (
     x   : X,
@@ -19,12 +15,14 @@ def_machine_nodefault_debug!{
   ) @ _g {
     STATES [
       state S ()
-      state T (t : u64 = bar (_g.foo), tt : u64 = bar (_g.foo + 1))
+      state T (t : u64 = *foo)
     ]
     EVENTS [
-      event A <S> => <T>
+      event A <S> => <T> ()
     ]
-    initial_state: S
+    initial_state: S {
+      initial_action: { println!("initial G: {:?}", _g) }
+    }
   }
 }
 
@@ -42,9 +40,9 @@ fn main () {
     simplelog::TermLogger::init (LOG_LEVEL_FILTER, simplelog::Config::default())
   );
 
-  G::<u8>::report();
-  G::<f64>::report();
-  G::<(f64,f64,f64)>::report();
+  G::<u8>::report_sizes();
+  G::<f64>::report_sizes();
+  G::<(f64,f64,f64)>::report_sizes();
 
   let dotfile_name = format!("{}.dot", example_name);
   let mut f = unwrap!(std::fs::File::create (dotfile_name));
@@ -57,11 +55,11 @@ fn main () {
   );
   println!("g: {:?}", g);
 
-  let e = EventId::A.into();
+  let e = Event::from_id (EventId::A);
   unwrap!(g.handle_event (e));
   println!("g: {:?}", g);
 
-  let e = EventId::A.into();
+  let e = Event::from_id (EventId::A);
   assert_eq!(g.handle_event (e), Err (HandleEventException::WrongState));
 
   println!("{}", format!("...{} main", example_name));

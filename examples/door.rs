@@ -10,17 +10,13 @@ extern crate simplelog;
 def_machine_debug! {
   Door (open_count : u64) @ _door {
     STATES [
-      state Closed (knock_count : u64, code : u64 = 12345)
+      state Closed (knock_count : u64)
       state Opened ()
     ]
     EVENTS [
-      event Knock <Closed> { knock_count } => {
-        *knock_count += 1;
-      }
-      event Open  <Closed> => <Opened> {} => {
-        _door.as_mut().open_count += 1;
-      }
-      event Close <Opened> => <Closed>
+      event Knock <Closed> () { knock_count } => { *knock_count += 1; }
+      event Open  <Closed> => <Opened> ()  {} => { *open_count += 1; }
+      event Close <Opened> => <Closed> ()
     ]
     initial_state:  Closed {
       initial_action: {
@@ -54,7 +50,7 @@ fn main () {
     simplelog::TermLogger::init (LOG_LEVEL_FILTER, simplelog::Config::default())
   );
 
-  Door::report();
+  Door::report_sizes();
 
   let dotfile_name = format!("{}.dot", example_name);
   let mut f = unwrap!{ std::fs::File::create (dotfile_name) };
@@ -69,15 +65,15 @@ fn main () {
   let mut door = Door::initial();
   println!("door: {:?}", door);
 
-  let e = EventId::Knock.into();
+  let e = Event::from_id (EventId::Knock);
   unwrap!(door.handle_event (e));
   println!("door: {:?}", door);
 
-  let e = EventId::Open.into();
+  let e = Event::from_id (EventId::Open);
   unwrap!(door.handle_event (e));
   println!("door: {:?}", door);
 
-  let e = EventId::Close.into();
+  let e = Event::from_id (EventId::Close);
   unwrap!(door.handle_event (e));
   println!("door: {:?}", door);
 

@@ -15,9 +15,9 @@ def_machine!{
       state T ()
     ]
     EVENTS [
-      event ToR <*> => <R>
-      event ToT <*> => <T>
-      event ToS <T> => <S>
+      event ToR <*> => <R> ()
+      event ToT <*> => <T> ()
+      event ToS <T> => <S> ()
     ]
     EXTENDED []
     initial_state: S
@@ -38,7 +38,7 @@ fn main () {
     simplelog::TermLogger::init (LOG_LEVEL_FILTER, simplelog::Config::default())
   );
 
-  M::report();
+  M::report_sizes();
 
   let dotfile_name = format!("{}.dot", example_name);
   let mut f = unwrap!(std::fs::File::create (dotfile_name));
@@ -48,11 +48,11 @@ fn main () {
   let mut m = M::initial();
   println!("m state: {:?}", m.state.id());
 
-  let e = EventId::ToR.into();
+  let e = Event::from_id (EventId::ToR);
   unwrap!(m.handle_event (e));
   println!("m state: {:?}", m.state.id());
 
-  let e = EventId::ToS.into();
+  let e = Event::from_id (EventId::ToS);
   assert_eq!(m.handle_event (e), Err (HandleEventException::WrongState));
 
   println!("{}", format!("...{} main", example_name));

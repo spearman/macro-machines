@@ -23,6 +23,7 @@ macro_rules! def_machine {
       ]
       EVENTS [
         $(event $event:ident <$source:tt> $(=> <$target:ident>)*
+          ($($param_name:ident : $param_type:ty $(= $param_default:expr)*),*)
           $({ $($state_data:ident),* } => $action:block)*
         )+
       ]
@@ -51,6 +52,7 @@ macro_rules! def_machine {
         ]
         EVENTS [
           $(event $event <$source> $(=> <$target>)*
+            ($($param_name : $param_type $(= $param_default)*),*)
             $({$($state_data),*} => $action)*
           )+
         ]
@@ -272,6 +274,7 @@ macro_rules! def_machine {
       ]
       EVENTS [
         $(event $event:ident <$source:tt> $(=> <$target:ident>)*
+          ($($param_name:ident : $param_type:ty $(= $param_default:expr)*),*)
           $({ $($state_data:ident),* } => $action:block)*
         )+
       ]
@@ -293,6 +296,7 @@ macro_rules! def_machine {
         ]
         EVENTS [
           $(event $event <$source> $(=> <$target>)*
+            ($($param_name : $param_type $(= $param_default)*),*)
             $({$($state_data),*} => $action)*
           )+
         ]
@@ -324,6 +328,7 @@ macro_rules! def_machine {
       ]
       EVENTS [
         $(event $event:ident <$source:tt> $(=> <$target:ident>)*
+          ($($param_name:ident),*)
           $({ $($state_data:ident),* } => $action:block)*
         )+
       ]
@@ -345,18 +350,23 @@ macro_rules! def_machine {
       match event.transition() {
 
         Transition::Universal (target_id) => {
-          trace!("<<< Ok: {:?} => {:?}", self.state.id, target_id);
+          trace!("<<< Ok: Universal ({:?} => {:?})", self.state.id, target_id);
           {
-            // TODO: instead bring extended state variables into scope ?
-            $(let $self_reference = &mut *self;)*
-            match event.id {
-              $(EventId::$event => {
-                // only expands universal actions, unreachable otherwise
-                def_machine!{
-                  @event_action_universal
-                  event $event <$source> $(=> <$target>)* $($action)*
+            // bring extended state variables into scope
+            #[allow(unused_variables)]
+            match &mut self.extended_state {
+              &mut ExtendedState { $(ref mut $ext_name,)*.. } => {
+                // map each event to an action
+                match event.params {
+                  $(EventParams::$event { $(ref $param_name,)*.. } => {
+                    // only expands universal actions, unreachable otherwise
+                    def_machine!{
+                      @event_action_universal
+                      event $event <$source> $(=> <$target>)* $($action)*
+                    }
+                  })+
                 }
-              })+
+              }
             }
           }
           let state  = target_id.to_state (&mut self.extended_state);
@@ -366,13 +376,14 @@ macro_rules! def_machine {
 
         Transition::Internal (source_id) => {
           if self.state.id == source_id {
+            trace!("<<< Ok: Internal ({:?})", source_id);
             // bring extended state variables into scope
             #[allow(unused_variables)]
             match &mut self.extended_state {
               &mut ExtendedState { $(ref mut $ext_name,)*.. } => {
                 // map each event to an action
-                match event.id {
-                  $(EventId::$event => {
+                match event.params {
+                  $(EventParams::$event { $(ref $param_name,)*.. } => {
                     // for universal transitions there is no source state so
                     // this produces a wildcard pattern resulting in the
                     // last branch being unreachable
@@ -406,17 +417,21 @@ macro_rules! def_machine {
 
         Transition::External (source_id, target_id) => {
           if self.state.id == source_id {
-            trace!("<<< Ok: {:?} => {:?}", source_id, target_id);
-            {
-              $(let $self_reference = &mut *self;)*
-              match event.id {
-                $(EventId::$event => {
-                  // only expands external actions, unreachable otherwise
-                  def_machine!{
-                    @event_action_external
-                    event $event <$source> $(=> <$target>)* $($action)*
-                  }
-                })+
+            trace!("<<< Ok: External ({:?} => {:?})", source_id, target_id);
+            // bring extended state variables into scope
+            #[allow(unused_variables)]
+            match &mut self.extended_state {
+              &mut ExtendedState { $(ref mut $ext_name,)*.. } => {
+                // map each event to an action
+                match event.params {
+                  $(EventParams::$event { $(ref $param_name,)*.. } => {
+                    // only expands external actions, unreachable otherwise
+                    def_machine!{
+                      @event_action_external
+                      event $event <$source> $(=> <$target>)* $($action)*
+                    }
+                  })+
+                }
               }
             }
             let state  = target_id.to_state (&mut self.extended_state);
@@ -539,19 +554,6 @@ macro_rules! def_machine {
   //
   ( @expr_default ) => { Default::default() };
 
-// FIXME
-/*
-  //
-  //  @expr_default_scope: override default
-  //
-  ( @expr_default_scope [$($reference:ident)*] $default:expr ) => { $default };
-
-  //
-  //  @expr_default_scope: use default
-  //
-  ( @expr_default_scope [$($reference:ident)*] ) => { Default::default() };
-*/
-
   //
   //  @expr_option: Some
   //
@@ -578,6 +580,7 @@ macro_rules! def_machine {
       ]
       EVENTS [
         $(event $event:ident <$source:tt> $(=> <$target:ident>)*
+          ($($param_name:ident : $param_type:ty $(= $param_default:expr)*),*)
           $({ $($state_data:ident),* } => $action:block)*
         )+
       ]
@@ -618,9 +621,9 @@ macro_rules! def_machine {
       $(pub $ext_name : $ext_type),*
     }
 
-    #[derive(Clone,PartialEq)]
     pub struct Event {
-      id : EventId
+      id     : EventId,
+      params : EventParams
     }
 
     #[derive(Clone,Debug,PartialEq)]
@@ -646,12 +649,18 @@ macro_rules! def_machine {
       $($event),+
     }
 
+    pub enum EventParams {
+      $($event {
+        $($param_name : $param_type),*
+      }),+
+    }
+
     impl $(<$($type_var),+>)* $machine $(<$($type_var),+>)* where
     $($(
       $($($type_var : $type_constraint),+)*
     ),+)*
     {
-      pub fn report() where $($($type_var : 'static),+)* {
+      pub fn report_sizes() where $($($type_var : 'static),+)* {
         let machine_name = stringify!($machine);
         let machine_type = unsafe { ::std::intrinsics::type_name::<Self>() };
         println!("{} report...", machine_name);
@@ -705,6 +714,7 @@ macro_rules! def_machine {
           ]
           EVENTS [
             $(event $event <$source> $(=> <$target>)*
+              ($($param_name),*)
               $({$($state_data),*} => $action)*
             )+
           ]
@@ -788,24 +798,29 @@ macro_rules! def_machine {
       }
       )*
       pub fn to_state $(<$($type_var),+>)* (self,
-        _extended_state : &mut ExtendedState$(<$($type_var),+>)*) -> State
+        extended_state : &mut ExtendedState$(<$($type_var),+>)*) -> State
       where
       $($(
         $($($type_var : $type_constraint),+)*
       ),+)*
       {
-        $(let $self_reference = _extended_state;)*
-        match self {
-          $(StateId::$state => {
-            State {
-              id:   self,
-              data: StateData::$state {
-                $($data_name:
-                  def_machine!(@expr_default $($data_default)*)
-                ),*
-              }
+        // bring extended state variables into scope
+        #[allow(unused_variables)]
+        match extended_state {
+          &mut ExtendedState { $(ref mut $ext_name,)*.. } => {
+            match self {
+              $(StateId::$state => {
+                State {
+                  id:   self,
+                  data: StateData::$state {
+                    $($data_name:
+                      def_machine!(@expr_default $($data_default)*)
+                    ),*
+                  }
+                }
+              })+
             }
-          })+
+          }
         }
       }
     }
@@ -821,17 +836,54 @@ macro_rules! def_machine {
       }
     }
 
-    impl Event {
-      pub fn transition (&self) -> Transition {
-        self.id.transition()
+    impl EventParams {
+      pub fn id (&self) -> EventId {
+        match *self {
+          $(EventParams::$event {..} => EventId::$event),+
+        }
       }
     }
 
-    impl From <EventId> for Event {
+    impl From <EventId> for EventParams {
       fn from (id : EventId) -> Self {
-        Event {
-          id: id
+        match id {
+          $(EventId::$event => EventParams::$event {
+            $($param_name:
+              def_machine!(@expr_default $($param_default)*)
+            ),*
+          }),+
         }
+      }
+    }
+
+    impl Event {
+      /// Construct an event with default parameters for the given ID
+      #[inline]
+      pub fn from_id (id : EventId) -> Self {
+        let params = id.clone().into();
+        Event { id, params }
+      }
+
+      #[inline]
+      pub fn transition (&self) -> Transition {
+        self.id.transition()
+      }
+
+      #[inline]
+      pub fn id (&self) -> &EventId {
+        &self.id
+      }
+
+      #[inline]
+      pub fn params (&self) -> &EventParams {
+        &self.params
+      }
+    }
+
+    impl From <EventParams> for Event {
+      fn from (params : EventParams) -> Self {
+        let id = params.id();
+        Event { id, params }
       }
     }
 
@@ -857,6 +909,7 @@ macro_rules! def_machine_nodefault {
       ]
       EVENTS [
         $(event $event:ident <$source:tt> $(=> <$target:ident>)*
+          ($($param_name:ident : $param_type:ty $(= $param_default:expr)*),*)
           $({ $($state_data:ident),* } => $action:block)*
         )+
       ]
@@ -885,6 +938,7 @@ macro_rules! def_machine_nodefault {
         ]
         EVENTS [
           $(event $event <$source> $(=> <$target>)*
+            ($($param_name : $param_type $(= $param_default)*),*)
             $({$($state_data),*} => $action)*
           )+
         ]
@@ -1075,6 +1129,7 @@ macro_rules! def_machine_nodefault {
       ]
       EVENTS [
         $(event $event:ident <$source:tt> $(=> <$target:ident>)*
+          ($($param_name:ident : $param_type:ty $(= $param_default:expr)*),*)
           $({ $($state_data:ident),* } => $action:block)*
         )+
       ]
@@ -1096,6 +1151,7 @@ macro_rules! def_machine_nodefault {
         ]
         EVENTS [
           $(event $event <$source> $(=> <$target>)*
+            ($($param_name : $param_type $(= $param_default)*),*)
             $({$($state_data),*} => $action)*
           )+
         ]
@@ -1142,6 +1198,7 @@ macro_rules! def_machine_debug {
       ]
       EVENTS [
         $(event $event:ident <$source:tt> $(=> <$target:ident>)*
+          ($($param_name:ident : $param_type:ty $(= $param_default:expr)*),*)
           $({ $($state_data:ident),* } => $action:block)*
         )+
       ]
@@ -1170,6 +1227,7 @@ macro_rules! def_machine_debug {
         ]
         EVENTS [
           $(event $event <$source> $(=> <$target>)*
+            ($($param_name : $param_type $(= $param_default)*),*)
             $({$($state_data),*} => $action)*
           )+
         ]
@@ -1395,6 +1453,7 @@ macro_rules! def_machine_debug {
       ]
       EVENTS [
         $(event $event:ident <$source:tt> $(=> <$target:ident>)*
+          ($($param_name:ident : $param_type:ty $(= $param_default:expr)*),*)
           $({ $($state_data:ident),* } => $action:block)*
         )+
       ]
@@ -1416,6 +1475,7 @@ macro_rules! def_machine_debug {
         ]
         EVENTS [
           $(event $event <$source> $(=> <$target>)*
+            ($($param_name : $param_type $(= $param_default)*),*)
             $({$($state_data),*} => $action)*
           )+
         ]
@@ -1447,6 +1507,7 @@ macro_rules! def_machine_debug {
       ]
       EVENTS [
         $(event $event:ident <$source:tt> $(=> <$target:ident>)*
+          ($($param_name:ident),*)
           $({ $($state_data:ident),* } => $action:block)*
         )+
       ]
@@ -1468,17 +1529,23 @@ macro_rules! def_machine_debug {
       match event.transition() {
 
         Transition::Universal (target_id) => {
-          trace!("<<< Ok: {:?} => {:?}", self.state.id, target_id);
+          trace!("<<< Ok: Universal ({:?} => {:?})", self.state.id, target_id);
           {
-            $(let $self_reference = &mut *self;)*
-            match event.id {
-              $(EventId::$event => {
-                // only expands universal actions, unreachable otherwise
-                def_machine_debug!{
-                  @event_action_universal
-                  event $event <$source> $(=> <$target>)* $($action)*
+            // bring extended state variables into scope
+            #[allow(unused_variables)]
+            match &mut self.extended_state {
+              &mut ExtendedState { $(ref mut $ext_name,)*.. } => {
+                // map each event to an action
+                match event.params {
+                  $(EventParams::$event { $(ref $param_name,)*.. } => {
+                    // only expands universal actions, unreachable otherwise
+                    def_machine_debug!{
+                      @event_action_universal
+                      event $event <$source> $(=> <$target>)* $($action)*
+                    }
+                  })+
                 }
-              })+
+              }
             }
           }
           let state  = target_id.to_state (&mut self.extended_state);
@@ -1486,15 +1553,16 @@ macro_rules! def_machine_debug {
           Ok (())
         }
 
-        Transition::Internal (state_id) => {
-          if self.state.id == state_id {
+        Transition::Internal (source_id) => {
+          if self.state.id == source_id {
+            trace!("<<< Ok: Internal ({:?})", source_id);
             // bring extended state variables into scope
             #[allow(unused_variables)]
             match &mut self.extended_state {
               &mut ExtendedState { $(ref mut $ext_name,)*.. } => {
                 // map each event to an action
-                match event.id {
-                  $(EventId::$event => {
+                match event.params {
+                  $(EventParams::$event { $(ref $param_name,)*.. } => {
                     // for universal transitions there is no source state so
                     // this produces a wildcard pattern resulting in the
                     // last branch being unreachable
@@ -1521,24 +1589,28 @@ macro_rules! def_machine_debug {
           } else {
             trace!("<<< Err: internal transition: \
               current state ({:?}) != state ({:?})",
-                self.state.id, state_id);
+                self.state.id, source_id);
             Err ($crate::HandleEventException::WrongState)
           }
         }
 
         Transition::External (source_id, target_id) => {
           if self.state.id == source_id {
-            trace!("<<< Ok: {:?} => {:?}", source_id, target_id);
-            {
-              $(let $self_reference = &mut *self;)*
-              match event.id {
-                $(EventId::$event => {
-                  // only expands external actions, unreachable otherwise
-                  def_machine_debug!{
-                    @event_action_external
-                    event $event <$source> $(=> <$target>)* $($action)*
-                  }
-                })+
+            trace!("<<< Ok: External ({:?} => {:?})", source_id, target_id);
+            // bring extended state variables into scope
+            #[allow(unused_variables)]
+            match &mut self.extended_state {
+              &mut ExtendedState { $(ref mut $ext_name,)*.. } => {
+                // map each event to an action
+                match event.params {
+                  $(EventParams::$event { $(ref $param_name,)*.. } => {
+                    // only expands external actions, unreachable otherwise
+                    def_machine_debug!{
+                      @event_action_external
+                      event $event <$source> $(=> <$target>)* $($action)*
+                    }
+                  })+
+                }
               }
             }
             let state  = target_id.to_state (&mut self.extended_state);
@@ -1687,6 +1759,7 @@ macro_rules! def_machine_debug {
       ]
       EVENTS [
         $(event $event:ident <$source:tt> $(=> <$target:ident>)*
+          ($($param_name:ident : $param_type:ty $(= $param_default:expr)*),*)
           $({ $($state_data:ident),* } => $action:block)*
         )+
       ]
@@ -1732,9 +1805,10 @@ macro_rules! def_machine_debug {
       $(pub $ext_name : $ext_type),*
     }
 
-    #[derive(Clone,Debug,PartialEq)]
+    #[derive(Debug)]
     pub struct Event {
-      id : EventId
+      id     : EventId,
+      params : EventParams
     }
 
     #[derive(Clone,Debug,PartialEq)]
@@ -1761,13 +1835,20 @@ macro_rules! def_machine_debug {
       $($event),+
     }
 
+    #[derive(Debug)]
+    pub enum EventParams {
+      $($event {
+        $($param_name : $param_type),*
+      }),+
+    }
+
     impl $(<$($type_var),+>)* $machine $(<$($type_var),+>)* where
     $($(
       $type_var : ::std::fmt::Debug,
       $($($type_var : $type_constraint),+)*
     ),+)*
     {
-      pub fn report() where $($($type_var : 'static),+)* {
+      pub fn report_sizes() where $($($type_var : 'static),+)* {
         let machine_name = stringify!($machine);
         let machine_type = unsafe { ::std::intrinsics::type_name::<Self>() };
         println!("{} report...", machine_name);
@@ -1813,6 +1894,7 @@ macro_rules! def_machine_debug {
           ]
           EVENTS [
             $(event $event <$source> $(=> <$target>)*
+              ($($param_name),*)
               $({$($state_data),*} => $action)*
             )+
           ]
@@ -1899,25 +1981,30 @@ macro_rules! def_machine_debug {
       }
       )*
       pub fn to_state $(<$($type_var),+>)* (self,
-        _extended_state : &mut ExtendedState$(<$($type_var),+>)*) -> State
+        extended_state : &mut ExtendedState$(<$($type_var),+>)*) -> State
       where
       $($(
         $type_var : ::std::fmt::Debug,
         $($($type_var : $type_constraint),+)*
       ),+)*
       {
-        $(let $self_reference = _extended_state;)*
-        match self {
-          $(StateId::$state => {
-            State {
-              id:   self,
-              data: StateData::$state {
-                $($data_name:
-                  def_machine_debug!(@expr_default $($data_default)*)
-                ),*
-              }
+        // bring extended state variables into scope
+        #[allow(unused_variables)]
+        match extended_state {
+          &mut ExtendedState { $(ref mut $ext_name,)*.. } => {
+            match self {
+              $(StateId::$state => {
+                State {
+                  id:   self,
+                  data: StateData::$state {
+                    $($data_name:
+                      def_machine_debug!(@expr_default $($data_default)*)
+                    ),*
+                  }
+                }
+              })+
             }
-          })+
+          }
         }
       }
     }
@@ -1933,17 +2020,54 @@ macro_rules! def_machine_debug {
       }
     }
 
-    impl Event {
-      pub fn transition (&self) -> Transition {
-        self.id.transition()
+    impl EventParams {
+      pub fn id (&self) -> EventId {
+        match *self {
+          $(EventParams::$event {..} => EventId::$event),+
+        }
       }
     }
 
-    impl From <EventId> for Event {
+    impl From <EventId> for EventParams {
       fn from (id : EventId) -> Self {
-        Event {
-          id: id
+        match id {
+          $(EventId::$event => EventParams::$event {
+            $($param_name:
+              def_machine_debug!(@expr_default $($param_default)*)
+            ),*
+          }),+
         }
+      }
+    }
+
+    impl Event {
+      /// Construct an event with default parameters for the given ID
+      #[inline]
+      pub fn from_id (id : EventId) -> Self {
+        let params = id.clone().into();
+        Event { id, params }
+      }
+
+      #[inline]
+      pub fn transition (&self) -> Transition {
+        self.id.transition()
+      }
+
+      #[inline]
+      pub fn id (&self) -> &EventId {
+        &self.id
+      }
+
+      #[inline]
+      pub fn params (&self) -> &EventParams {
+        &self.params
+      }
+    }
+
+    impl From <EventParams> for Event {
+      fn from (params : EventParams) -> Self {
+        let id = params.id();
+        Event { id, params }
       }
     }
 
@@ -1969,6 +2093,7 @@ macro_rules! def_machine_nodefault_debug {
       ]
       EVENTS [
         $(event $event:ident <$source:tt> $(=> <$target:ident>)*
+          ($($param_name:ident : $param_type:ty $(=> $param_default:expr)*),*)
           $({ $($state_data:ident),* } => $action:block)*
         )+
       ]
@@ -1997,6 +2122,7 @@ macro_rules! def_machine_nodefault_debug {
         ]
         EVENTS [
           $(event $event <$source> $(=> <$target>)*
+            ($($param_name : $param_type $(=> $param_default)*),*)
             $({$($state_data),*} => $action)*
           )+
         ]
@@ -2191,6 +2317,7 @@ macro_rules! def_machine_nodefault_debug {
       ]
       EVENTS [
         $(event $event:ident <$source:tt> $(=> <$target:ident>)*
+          ($($param_name:ident : $param_type:ty $(= $param_default:expr)*),*)
           $({ $($state_data:ident),* } => $action:block)*
         )+
       ]
@@ -2212,6 +2339,7 @@ macro_rules! def_machine_nodefault_debug {
         ]
         EVENTS [
           $(event $event <$source> $(=> <$target>)*
+            ($($param_name : $param_type $(= $param_default)*),*)
             $({$($state_data),*} => $action)*
           )+
         ]
