@@ -1,6 +1,6 @@
 [package]
 name = "macro-machines"
-version = "0.6.1"
+version = "0.7.0"
 authors = ["Shane Pearman <spearman@github.com>"]
 license = "MPL-2.0"
 

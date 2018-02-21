@@ -252,6 +252,28 @@ macro_rules! def_machine {
         }
       }
     }
+
+    impl <'event> Event <'event> {
+      /// Construct an event with default parameters for the given ID
+      #[inline]
+      pub fn from_id (id : EventId) -> Self {
+        let params = id.clone().into();
+        Event { id, params }
+      }
+    }
+
+    impl <'event> From <EventId> for EventParams <'event> {
+      fn from (id : EventId) -> Self {
+        match id {
+          $(EventId::$event => EventParams::$event {
+            $($param_name:
+              def_machine!(@expr_default $($param_default)*)
+            ),*
+          }),+
+        }
+      }
+    }
+
   };
   //  end main interface
 
@@ -340,14 +362,14 @@ macro_rules! def_machine {
 
   ) => {
 
-    pub fn handle_event (&mut self, event : Event)
+    pub fn handle_event (&mut self, mut _event : Event)
       -> Result <(), $crate::HandleEventException>
     {
-      trace!("{}::handle_event: {:?}", stringify!($machine), event.id);
+      trace!("{}::handle_event: {:?}", stringify!($machine), _event.id);
       // if only one kind of transition exists the following match expression
       // will detect the other branch as "unreachable_code"
       #[allow(unreachable_code)]
-      match event.transition() {
+      match _event.transition() {
 
         Transition::Universal (target_id) => {
           trace!("<<< Ok: Universal ({:?} => {:?})", self.state.id, target_id);
@@ -357,7 +379,7 @@ macro_rules! def_machine {
             match &mut self.extended_state {
               &mut ExtendedState { $(ref mut $ext_name,)*.. } => {
                 // map each event to an action
-                match event.params {
+                match _event.params {
                   $(EventParams::$event { $(ref mut $param_name,)*.. } => {
                     // only expands universal actions, unreachable otherwise
                     def_machine!{
@@ -365,6 +387,7 @@ macro_rules! def_machine {
                       event $event <$source> $(=> <$target>)* $($action)*
                     }
                   })+
+                  _ => unreachable!("unreachable phantom data variant")
                 }
               }
             }
@@ -382,7 +405,7 @@ macro_rules! def_machine {
             match &mut self.extended_state {
               &mut ExtendedState { $(ref mut $ext_name,)*.. } => {
                 // map each event to an action
-                match event.params {
+                match _event.params {
                   $(EventParams::$event { $(ref mut $param_name,)*.. } => {
                     // for universal transitions there is no source state so
                     // this produces a wildcard pattern resulting in the
@@ -403,6 +426,7 @@ macro_rules! def_machine {
                       _ => unreachable!("current state should match event source")
                     }
                   })+
+                  _ => unreachable!("unreachable phantom data variant")
                 }
               }
             }
@@ -423,7 +447,7 @@ macro_rules! def_machine {
             match &mut self.extended_state {
               &mut ExtendedState { $(ref mut $ext_name,)*.. } => {
                 // map each event to an action
-                match event.params {
+                match _event.params {
                   $(EventParams::$event { $(ref mut $param_name,)*.. } => {
                     // only expands external actions, unreachable otherwise
                     def_machine!{
@@ -431,6 +455,7 @@ macro_rules! def_machine {
                       event $event <$source> $(=> <$target>)* $($action)*
                     }
                   })+
+                  _ => unreachable!("unreachable phantom data variant")
                 }
               }
             }
@@ -621,9 +646,9 @@ macro_rules! def_machine {
       $(pub $ext_name : $ext_type),*
     }
 
-    pub struct Event {
+    pub struct Event <'event> {
       id     : EventId,
-      params : EventParams
+      params : EventParams <'event>
     }
 
     #[derive(Clone,Debug,PartialEq)]
@@ -649,10 +674,11 @@ macro_rules! def_machine {
       $($event),+
     }
 
-    pub enum EventParams {
+    pub enum EventParams <'event> {
       $($event {
         $($param_name : $param_type),*
-      }),+
+      },)+
+      _PhantomData (std::marker::PhantomData <&'event ()>)
     }
 
     impl $(<$($type_var),+>)* $machine $(<$($type_var),+>)* where
@@ -836,34 +862,16 @@ macro_rules! def_machine {
       }
     }
 
-    impl EventParams {
+    impl <'event> EventParams <'event> {
       pub fn id (&self) -> EventId {
         match *self {
-          $(EventParams::$event {..} => EventId::$event),+
+          $(EventParams::$event {..} => EventId::$event,)+
+          _ => unreachable!("unreachable phantom data variant")
         }
       }
     }
 
-    impl From <EventId> for EventParams {
-      fn from (id : EventId) -> Self {
-        match id {
-          $(EventId::$event => EventParams::$event {
-            $($param_name:
-              def_machine!(@expr_default $($param_default)*)
-            ),*
-          }),+
-        }
-      }
-    }
-
-    impl Event {
-      /// Construct an event with default parameters for the given ID
-      #[inline]
-      pub fn from_id (id : EventId) -> Self {
-        let params = id.clone().into();
-        Event { id, params }
-      }
-
+    impl <'event> Event <'event> {
       #[inline]
       pub fn transition (&self) -> Transition {
         self.id.transition()
@@ -880,8 +888,8 @@ macro_rules! def_machine {
       }
     }
 
-    impl From <EventParams> for Event {
-      fn from (params : EventParams) -> Self {
+    impl <'event> From <EventParams <'event>> for Event <'event> {
+      fn from (params : EventParams <'event>) -> Self {
         let id = params.id();
         Event { id, params }
       }
@@ -1431,6 +1439,27 @@ macro_rules! def_machine_debug {
       }
     }
 
+    impl <'event> Event <'event> {
+      /// Construct an event with default parameters for the given ID
+      #[inline]
+      pub fn from_id (id : EventId) -> Self {
+        let params = id.clone().into();
+        Event { id, params }
+      }
+    }
+
+    impl <'event> From <EventId> for EventParams <'event> {
+      fn from (id : EventId) -> Self {
+        match id {
+          $(EventId::$event => EventParams::$event {
+            $($param_name:
+              def_machine_debug!(@expr_default $($param_default)*)
+            ),*
+          }),+
+        }
+      }
+    }
+
   };
   //  end main interface
 
@@ -1519,14 +1548,14 @@ macro_rules! def_machine_debug {
 
   ) => {
 
-    pub fn handle_event (&mut self, event : Event)
+    pub fn handle_event (&mut self, mut _event : Event)
       -> Result <(), $crate::HandleEventException>
     {
-      trace!("{}::handle_event: {:?}", stringify!($machine), event);
+      trace!("{}::handle_event: {:?}", stringify!($machine), _event);
       // if only one kind of transition exists the following match expression
       // will detect the other branch as "unreachable_code"
       #[allow(unreachable_code)]
-      match event.transition() {
+      match _event.transition() {
 
         Transition::Universal (target_id) => {
           trace!("<<< Ok: Universal ({:?} => {:?})", self.state.id, target_id);
@@ -1536,7 +1565,7 @@ macro_rules! def_machine_debug {
             match &mut self.extended_state {
               &mut ExtendedState { $(ref mut $ext_name,)*.. } => {
                 // map each event to an action
-                match event.params {
+                match _event.params {
                   $(EventParams::$event { $(ref mut $param_name,)*.. } => {
                     // only expands universal actions, unreachable otherwise
                     def_machine_debug!{
@@ -1544,6 +1573,7 @@ macro_rules! def_machine_debug {
                       event $event <$source> $(=> <$target>)* $($action)*
                     }
                   })+
+                  _ => unreachable!("unreachable phantom data variant")
                 }
               }
             }
@@ -1561,7 +1591,7 @@ macro_rules! def_machine_debug {
             match &mut self.extended_state {
               &mut ExtendedState { $(ref mut $ext_name,)*.. } => {
                 // map each event to an action
-                match event.params {
+                match _event.params {
                   $(EventParams::$event { $(ref mut $param_name,)*.. } => {
                     // for universal transitions there is no source state so
                     // this produces a wildcard pattern resulting in the
@@ -1582,6 +1612,7 @@ macro_rules! def_machine_debug {
                       _ => unreachable!("current state should match event source")
                     }
                   })+
+                  _ => unreachable!("unreachable phantom data variant")
                 }
               }
             }
@@ -1602,7 +1633,7 @@ macro_rules! def_machine_debug {
             match &mut self.extended_state {
               &mut ExtendedState { $(ref mut $ext_name,)*.. } => {
                 // map each event to an action
-                match event.params {
+                match _event.params {
                   $(EventParams::$event { $(ref mut $param_name,)*.. } => {
                     // only expands external actions, unreachable otherwise
                     def_machine_debug!{
@@ -1610,6 +1641,7 @@ macro_rules! def_machine_debug {
                       event $event <$source> $(=> <$target>)* $($action)*
                     }
                   })+
+                  _ => unreachable!("unreachable phantom data variant")
                 }
               }
             }
@@ -1806,9 +1838,9 @@ macro_rules! def_machine_debug {
     }
 
     #[derive(Debug)]
-    pub struct Event {
+    pub struct Event <'event> {
       id     : EventId,
-      params : EventParams
+      params : EventParams <'event>
     }
 
     #[derive(Clone,Debug,PartialEq)]
@@ -1836,10 +1868,11 @@ macro_rules! def_machine_debug {
     }
 
     #[derive(Debug)]
-    pub enum EventParams {
+    pub enum EventParams <'event> {
       $($event {
         $($param_name : $param_type),*
-      }),+
+      },)+
+      _PhantomData (std::marker::PhantomData <&'event ()>)
     }
 
     impl $(<$($type_var),+>)* $machine $(<$($type_var),+>)* where
@@ -2020,34 +2053,16 @@ macro_rules! def_machine_debug {
       }
     }
 
-    impl EventParams {
+    impl <'event> EventParams <'event> {
       pub fn id (&self) -> EventId {
         match *self {
-          $(EventParams::$event {..} => EventId::$event),+
+          $(EventParams::$event {..} => EventId::$event,)+
+          _ => unreachable!("unreachable phantom data variant")
         }
       }
     }
 
-    impl From <EventId> for EventParams {
-      fn from (id : EventId) -> Self {
-        match id {
-          $(EventId::$event => EventParams::$event {
-            $($param_name:
-              def_machine_debug!(@expr_default $($param_default)*)
-            ),*
-          }),+
-        }
-      }
-    }
-
-    impl Event {
-      /// Construct an event with default parameters for the given ID
-      #[inline]
-      pub fn from_id (id : EventId) -> Self {
-        let params = id.clone().into();
-        Event { id, params }
-      }
-
+    impl <'event> Event <'event> {
       #[inline]
       pub fn transition (&self) -> Transition {
         self.id.transition()
@@ -2064,8 +2079,8 @@ macro_rules! def_machine_debug {
       }
     }
 
-    impl From <EventParams> for Event {
-      fn from (params : EventParams) -> Self {
+    impl <'event> From <EventParams <'event>> for Event <'event> {
+      fn from (params : EventParams <'event>) -> Self {
         let id = params.id();
         Event { id, params }
       }

@@ -56,11 +56,11 @@ fn main () {
   ).unwrap());
   println!("g state: {:?}", g.state().id());
 
-  let e = Event::from_id (EventId::A);
+  let e = EventParams::A{}.into();
   unwrap!(g.handle_event (e));
   println!("g state: {:?}", g.state().id());
 
-  let e = Event::from_id (EventId::A);
+  let e = EventParams::A{}.into();
   assert_eq!(g.handle_event (e), Err (HandleEventException::WrongState));
 
   println!("{}", format!("...{} main", example_name));
