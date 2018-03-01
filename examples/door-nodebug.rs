@@ -57,12 +57,12 @@ fn main () {
   let dotfile_name = format!("{}.dot", example_name);
   let mut f = unwrap!{ std::fs::File::create (dotfile_name) };
   unwrap!{ f.write_all (Door::dotfile().as_bytes()) };
-  std::mem::drop (f);
+  drop (f);
 
   let dotfile_name = format!("{}-hide-defaults.dot", example_name);
   let mut f = unwrap!{ std::fs::File::create (dotfile_name) };
   unwrap!{ f.write_all (Door::dotfile_hide_defaults().as_bytes()) };
-  std::mem::drop (f);
+  drop (f);
 
   let mut door = Door::initial();
   let e = Event::from_id (EventId::Knock);

@@ -35,7 +35,7 @@ def_machine_debug!{
       state T ()
     ]
     EVENTS [
-      event A <S> => <T>
+      event A <S> => <T> ()
     ]
     EXTENDED []
     initial_state: S
@@ -46,9 +46,9 @@ fn main () {
   use macro_machines::HandleEventException;
 
   let mut m = M::initial();
-  let e = EventId::A.into();
+  let e = Event::from_id (EventId::A);
   m.handle_event (e).unwrap();
-  let e = EventId::A.into();
+  let e = Event::from_id (EventId::A);
   assert_eq!(m.handle_event (e), Err (HandleEventException::WrongState));
 }
 ```
