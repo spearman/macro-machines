@@ -1,8 +1,62 @@
-//! State machine macros with logging and graphviz dotfile output
+//! State machine macros with logging and graphviz dotfile generation
 //!
 //! [Repository](https://github.com/spearman/macro-machines)
+//!
+//! An example `Door` state machine with:
+//!
+//! - an `open_count` *extended state variable*
+//! - two *states*: `Closed` (with *state-local variable* `knock_count`) and
+//!   `Open`
+//! - three *events*: one *internal event* `Knock` (with *action* on the
+//!   `Closed` state) and two *external events* `Open` (wth associated action) and
+//!   `Close` (without any action)
+//!
+//! ```text
+//! def_machine_debug! {
+//!   Door (open_count : u64) @ _door {
+//!     STATES [
+//!       state Closed (knock_count : u64)
+//!       state Opened ()
+//!     ]
+//!     EVENTS [
+//!       event Knock <Closed> () { knock_count } => { *knock_count += 1; }
+//!       event Open  <Closed> => <Opened> ()  {} => { *open_count += 1; }
+//!       event Close <Opened> => <Closed> ()
+//!     ]
+//!     initial_state:  Closed {
+//!       initial_action: {
+//!         println!("hello");
+//!         println!("open_count: {:?}", _door.as_ref().open_count);
+//!       }
+//!     }
+//!     terminal_state: Closed {
+//!       terminate_success: {
+//!         println!("open_count: {:?}", _door.as_ref().open_count);
+//!         println!("goodbye")
+//!       }
+//!       terminate_failure: {
+//!         panic!("door was left: {:?}", _door.state())
+//!       }
+//!     }
+//!   }
+//! }
+//! ```
+//!
+//! The `Door::dotfile()` function will generate a dotfile string that can be
+//! saved and rendered as a PNG with graphviz `dot` layout:
+//!
+//! ```text
+//! $ dot -Tpng door.dot > door.png
+//! ```
+//!
+//! ![](https://raw.githubusercontent.com/spearman/macro-machines/master/door.png)
+
+#![feature(macro_reexport)]
 
 extern crate escapade;
+
+#[macro_reexport(log, trace, debug, info, warn, error)]
+extern crate log;
 
 #[macro_use] mod macro_def;
 
@@ -16,7 +70,7 @@ pub trait MachineDotfile {
   fn extended_state_names()       -> Vec <&'static str>;
   fn extended_state_types()       -> Vec <&'static str>;
   fn extended_state_defaults()    -> Vec <&'static str>;
-  fn self_reference()   -> &'static str;
+  fn self_reference()             -> &'static str;
   fn states()                     -> Vec <&'static str>;
   fn state_data_names()           -> Vec <Vec <&'static str>>;
   fn state_data_types()           -> Vec <Vec <&'static str>>;
@@ -49,6 +103,9 @@ pub trait MachineDotfile {
   }
 }
 
+/// Describes an exceptional result when attempting to handle an event.
+///
+/// Currently the only exception is the '`WrongState`' exception.
 #[derive(Debug,PartialEq)]
 pub enum HandleEventException {
   WrongState

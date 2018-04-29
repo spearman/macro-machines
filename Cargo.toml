@@ -1,8 +1,11 @@
 [package]
 name = "macro-machines"
-version = "0.7.0"
+version = "0.7.1"
 authors = ["Shane Pearman <spearman@github.com>"]
 license = "MPL-2.0"
+description = "State machine macros with logging and graphviz dotfile generation"
+repository = "https://github.com/spearman/macro-machines"
+readme = "README.md"
 
 [dependencies]
 escapade = "0.0.*"

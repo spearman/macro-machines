@@ -1,27 +1,19 @@
 # `macro-machines`
 
-> State machine macros with logging and graphviz dotfile output
+> State machine macros with logging and graphviz dotfile generation
 
 [Documentation](https://spearman.github.io/macro-machines/macro_machines/index.html)
 
 ## Usage
 
-Using the macros defined by this library requires the additional external
-dependency on the `log` crate:
-
-```toml
-[dependencies]
-log = "0.4.*"
-macro_machines = "0.5.*"
-```
-
-and the following directives in the crate root:
+The macros provided by this library expand to definitions using `const fn`s and
+some intrinsics to help generate dotfiles, so these features must be enabled in
+the crate root:
 
 ```rust
 #![feature(const_fn)]
 #![feature(core_intrinsics)]
 
-#[macro_use] extern crate log;
 #[macro_use] extern crate macro_machines;
 ```
 

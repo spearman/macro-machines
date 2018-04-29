@@ -2,7 +2,6 @@
 #![feature(core_intrinsics)]
 
 #[macro_use] extern crate unwrap;
-#[macro_use] extern crate log;
 extern crate simplelog;
 
 #[macro_use] extern crate macro_machines;
