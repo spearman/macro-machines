@@ -11,7 +11,7 @@ def_machine_nodefault_debug!{
     x   : X,
     rx  : std::sync::mpsc::Receiver <X> = std::sync::mpsc::channel().1,
     foo : u64
-  ) @ _g {
+  ) @ g {
     STATES [
       state S ()
       state T (t : u64 = *foo)
@@ -20,7 +20,7 @@ def_machine_nodefault_debug!{
       event A <S> => <T> ()
     ]
     initial_state: S {
-      initial_action: { println!("initial G: {:?}", _g) }
+      initial_action: { println!("initial G: {:?}", g) }
     }
   }
 }
@@ -45,7 +45,7 @@ fn main () {
 
   let dotfile_name = format!("{}.dot", example_name);
   let mut f = unwrap!(std::fs::File::create (dotfile_name));
-  unwrap!(f.write_all (G::<f64>::dotfile().as_bytes()));
+  unwrap!(f.write_all (G::<f64>::dotfile_show_defaults().as_bytes()));
   drop (f);
 
   //let mut g = G::<std::sync::mpsc::Receiver <f64>>::initial();

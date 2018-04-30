@@ -7,7 +7,7 @@ extern crate simplelog;
 #[macro_use] extern crate macro_machines;
 
 def_machine! {
-  Door (open_count : u64) @ _door {
+  Door (open_count : u64) @ door {
     STATES [
       state Closed (knock_count : u64)
       state Opened ()
@@ -20,16 +20,16 @@ def_machine! {
     initial_state:  Closed {
       initial_action: {
         println!("hello");
-        println!("open_count: {:?}", _door.as_ref().open_count);
+        println!("open_count: {:?}", door.as_ref().open_count);
       }
     }
     terminal_state: Closed {
       terminate_success: {
-        println!("open_count: {:?}", _door.as_ref().open_count);
+        println!("open_count: {:?}", door.as_ref().open_count);
         println!("goodbye")
       }
       terminate_failure: {
-        panic!("door was left: {:?}", _door.state().id())
+        panic!("door was left: {:?}", door.state().id())
       }
     }
   }
@@ -58,9 +58,9 @@ fn main () {
   unwrap!{ f.write_all (Door::dotfile().as_bytes()) };
   drop (f);
 
-  let dotfile_name = format!("{}-hide-defaults.dot", example_name);
+  let dotfile_name = format!("{}-show-defaults.dot", example_name);
   let mut f = unwrap!{ std::fs::File::create (dotfile_name) };
-  unwrap!{ f.write_all (Door::dotfile_hide_defaults().as_bytes()) };
+  unwrap!{ f.write_all (Door::dotfile_show_defaults().as_bytes()) };
   drop (f);
 
   let mut door = Door::initial();

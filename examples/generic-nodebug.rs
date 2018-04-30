@@ -46,7 +46,7 @@ fn main () {
 
   let dotfile_name = format!("{}.dot", example_name);
   let mut f = unwrap!(std::fs::File::create (dotfile_name));
-  unwrap!(f.write_all (G::<Nodebug>::dotfile().as_bytes()));
+  unwrap!(f.write_all (G::<Nodebug>::dotfile_show_defaults().as_bytes()));
   drop (f);
 
   //let mut g = G::<std::sync::mpsc::Receiver <f64>>::initial();

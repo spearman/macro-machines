@@ -2,18 +2,20 @@
 //!
 //! [Repository](https://github.com/spearman/macro-machines)
 //!
-//! An example `Door` state machine with:
+//! An example that shows a number of features of the macro syntax is a `Door`
+//! state machine with:
 //!
-//! - an `open_count` *extended state variable*
 //! - two *states*: `Closed` (with *state-local variable* `knock_count`) and
 //!   `Open`
 //! - three *events*: one *internal event* `Knock` (with *action* on the
 //!   `Closed` state) and two *external events* `Open` (wth associated action) and
 //!   `Close` (without any action)
+//! - an `open_count` *extended state variable* -- this variable is initialized
+//!   once and is independent of the current machine state
 //!
 //! ```text
 //! def_machine_debug! {
-//!   Door (open_count : u64) @ _door {
+//!   Door (open_count : u64) @ door {
 //!     STATES [
 //!       state Closed (knock_count : u64)
 //!       state Opened ()
@@ -26,21 +28,33 @@
 //!     initial_state:  Closed {
 //!       initial_action: {
 //!         println!("hello");
-//!         println!("open_count: {:?}", _door.as_ref().open_count);
+//!         println!("open_count: {:?}", door.as_ref().open_count);
 //!       }
 //!     }
 //!     terminal_state: Closed {
 //!       terminate_success: {
-//!         println!("open_count: {:?}", _door.as_ref().open_count);
+//!         println!("open_count: {:?}", door.as_ref().open_count);
 //!         println!("goodbye")
 //!       }
 //!       terminate_failure: {
-//!         panic!("door was left: {:?}", _door.state())
+//!         panic!("door was left: {:?}", door.state())
 //!       }
 //!     }
 //!   }
 //! }
 //! ```
+//!
+//! To optionally make the state machine accessible in initial and terminal
+//! action blocks, the macro implementation requires an identifier `door` be
+//! introduced here following the `@` symbol. The variable is then brought into
+//! scope as an alias for a mutable self-reference in initial and terminal
+//! action blocks.
+//!
+//! In event actions, mutable references to extended state variables will
+//! implicitly be brought into scope of the associated action block, however
+//! local state variables need to be explicitly listed in the LHS brace of the
+//! action construct to be accessible (e.g. the `knock_count` local state
+//! variable in the `Knock` event action of the current example).
 //!
 //! The `Door::dotfile()` function will generate a dotfile string that can be
 //! saved and rendered as a PNG with graphviz `dot` layout:
@@ -83,15 +97,15 @@ pub trait MachineDotfile {
   fn event_targets()              -> Vec <&'static str>;
   fn event_actions()              -> Vec <&'static str>;
   // provided: these are intended to be called by the user
-  /// Generate a dotfile for the state machine that shows default expressions
-  /// for state fields and extended state fields
-  fn dotfile() -> String where Self : Sized {
-    machine_dotfile::<Self> (false, false)
-  }
   /// Generate a dotfile for the state machine that hides default expressions
   /// for state fields and extended state fields
-  fn dotfile_hide_defaults() -> String where Self : Sized {
+  fn dotfile() -> String where Self : Sized {
     machine_dotfile::<Self> (true, false)
+  }
+  /// Generate a dotfile for the state machine that shows default expressions
+  /// for state fields and extended state fields
+  fn dotfile_show_defaults() -> String where Self : Sized {
+    machine_dotfile::<Self> (false, false)
   }
   /// Generate a dotfile for the state machine that pretty prints the *values*
   /// of default expressions for state fields and extended state fields.

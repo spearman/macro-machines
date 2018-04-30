@@ -81,7 +81,8 @@ macro_rules! def_machine {
         let state = StateId::$initial.to_state (&mut extended_state);
         let mut _initial = Self { state, extended_state };
         {
-          $(let $self_reference = &mut _initial;)*
+          $(#[allow(unused_variables)]
+          let $self_reference = &mut _initial;)*
           $($($initial_action)*)*
         }
         _initial
@@ -700,7 +701,8 @@ macro_rules! def_machine {
         let state    = StateId::$initial.to_state (&mut extended_state);
         let mut _new = Self { state, extended_state };
         {
-          $(let $self_reference = &mut _new;)*
+          $(#[allow(unused_variables)]
+          let $self_reference = &mut _new;)*
           $($($initial_action)*)*
         }
         _new
@@ -787,7 +789,8 @@ macro_rules! def_machine {
       fn drop (&mut self) {
         trace!("{}::drop", stringify!($machine));
         let _state_id = self.state.id.clone();
-        $(let $self_reference = &mut *self;)*
+        $(#[allow(unused_variables)]
+        let $self_reference = &mut *self;)*
         $(
         if _state_id != StateId::$terminal {
           trace!("<<< current state ({:?}) != terminal state ({:?})",
@@ -1265,7 +1268,8 @@ macro_rules! def_machine_debug {
         let state = StateId::$initial.to_state (&mut extended_state);
         let mut _initial = Self { state, extended_state };
         {
-          $(let $self_reference = &mut _initial;)*
+          $(#[allow(unused_variables)]
+          let $self_reference = &mut _initial;)*
           $($($initial_action)*)*
         }
         _initial
@@ -1895,7 +1899,8 @@ macro_rules! def_machine_debug {
         let state    = StateId::$initial.to_state (&mut extended_state);
         let mut _new = Self { state, extended_state };
         {
-          $(let $self_reference = &mut _new;)*
+          $(#[allow(unused_variables)]
+          let $self_reference = &mut _new;)*
           $($($initial_action)*)*
         }
         _new
@@ -1977,7 +1982,8 @@ macro_rules! def_machine_debug {
       fn drop (&mut self) {
         trace!("{}::drop", stringify!($machine));
         let _state_id = self.state.id.clone();
-        $(let $self_reference = &mut *self;)*
+        $(#[allow(unused_variables)]
+        let $self_reference = &mut *self;)*
         $(
         if _state_id != StateId::$terminal {
           trace!("<<< current state ({:?}) != terminal state ({:?})",
