@@ -2,7 +2,7 @@
 
 > State machine macros with logging and graphviz dotfile generation
 
-[Documentation](https://spearman.github.io/macro-machines/macro_machines/index.html)
+[Documentation](https://spearman.github.io/macro-machines/macro_machines/)
 
 ## Usage
 
