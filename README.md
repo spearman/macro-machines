@@ -60,3 +60,8 @@ Rendered as PNG with `$ dot -Tpng minimal.dot > minimal.png`:
 ![](minimal.png)
 
 For examples of more complex state machines, see the `./examples/` directory.
+
+
+## Dependencies
+
+![](dependencies.png)

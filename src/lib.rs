@@ -67,7 +67,7 @@
 
 #![feature(macro_reexport)]
 
-extern crate escapade;
+extern crate marksman_escape;
 
 #[macro_reexport(log, trace, debug, info, warn, error)]
 extern crate log;
@@ -133,8 +133,6 @@ pub enum HandleEventException {
 fn machine_dotfile <M : MachineDotfile>
   (hide_defaults : bool, pretty_defaults : bool) -> String
 {
-  use escapade::Escapable;
-
   let mut s = String::new();
   //
   // begin graph
@@ -165,8 +163,7 @@ fn machine_dotfile <M : MachineDotfile>
     }
     s
   };
-  s.push_str (format!(
-    "    label=<{}", title_string.escape().into_inner()).as_str());
+  s.push_str (format!("    label=<{}", escape (title_string)).as_str());
 
   //  extended state
   let mut mono_font           = false;
@@ -204,14 +201,14 @@ fn machine_dotfile <M : MachineDotfile>
         .collect();
 
       if !hide_defaults && !extended_state_defaults[i].is_empty() {
-        extended_string.push_str (format!(
+        extended_string.push_str (escape (format!(
           "{}{} : {}{} = {}",
           f, spacer1, extended_state_types[i], spacer2, extended_state_defaults[i]
-        ).escape().into_inner().as_str());
+        )).as_str());
       } else {
-        extended_string.push_str (format!(
+        extended_string.push_str (escape (format!(
           "{}{} : {}", f, spacer1, extended_state_types[i]
-        ).escape().into_inner().as_str());
+        )).as_str());
       }
       extended_string.push_str (format!("{}", separator).as_str());
     }
@@ -263,7 +260,7 @@ fn machine_dotfile <M : MachineDotfile>
         let mut pretty_br = String::new();
         let separator = "<BR ALIGN=\"LEFT\"/>\n";
         for line in pretty_newline.lines() {
-          pretty_br.push_str (line.escape().into_inner().as_str());
+          pretty_br.push_str (escape (line.to_string()).as_str());
           pretty_br.push_str (separator);
         }
         let len = pretty_br.len();
@@ -307,14 +304,14 @@ fn machine_dotfile <M : MachineDotfile>
           .take(longest_typename - state_data_types[i].len())
           .collect();
         if !hide_defaults && !state_data_defaults[i].is_empty() {
-          data_string.push_str (format!(
+          data_string.push_str (escape (format!(
             "{}{} : {}{} = {}",
             f, spacer1, state_data_types[i], spacer2, state_data_defaults[i]
-          ).escape().into_inner().as_str());
+          )).as_str());
         } else {
-          data_string.push_str (format!(
+          data_string.push_str (escape (format!(
             "{}{} : {}", f, spacer1, state_data_types[i]
-          ).escape().into_inner().as_str());
+          )).as_str());
         }
         data_string.push_str (format!("{}", separator).as_str());
       }
@@ -387,8 +384,7 @@ fn machine_dotfile <M : MachineDotfile>
           }
           // TODO: different formatting if params or guards were present
           //action = "  ".to_string() + action.as_str();
-          let action = action.escape().into_inner();
-          s.push_str (format!("{}", action).as_str());
+          s.push_str (format!("{}", escape (action.to_string())).as_str());
         }
       }
     }
@@ -426,3 +422,10 @@ fn machine_dotfile <M : MachineDotfile>
     }");
   s
 } // end fn machine_dotfile
+
+/// Escape HTML special characters
+#[inline]
+fn escape (s : String) -> String {
+  use marksman_escape::Escape;
+  String::from_utf8 (Escape::new (s.bytes()).collect()).unwrap()
+}
