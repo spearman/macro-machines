@@ -8,8 +8,8 @@
 //! - two *states*: `Closed` (with *state-local variable* `knock_count`) and
 //!   `Open`
 //! - three *events*: one *internal event* `Knock` (with *action* on the
-//!   `Closed` state) and two *external events* `Open` (wth associated action) and
-//!   `Close` (without any action)
+//!   `Closed` state) and two *external events* `Open` (with associated action)
+//!   and `Close` (without any action)
 //! - an `open_count` *extended state variable* -- this variable is initialized
 //!   once and is independent of the current machine state
 //!
@@ -65,12 +65,15 @@
 //!
 //! ![](https://raw.githubusercontent.com/spearman/macro-machines/master/door.png)
 
-#![feature(macro_reexport)]
+#![feature(use_extern_macros)]
 
 extern crate marksman_escape;
-
-#[macro_reexport(log, trace, debug, info, warn, error)]
 extern crate log;
+
+// NOTE: macro documentation is not hidden (Rust 1.27.0):
+// <https://github.com/rust-lang/rust/issues/50647>
+#[doc(hidden)]
+pub use log::{log, trace, debug, info, warn, error};
 
 #[macro_use] mod macro_def;
 

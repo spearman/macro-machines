@@ -1888,9 +1888,9 @@ macro_rules! def_machine_debug {
       pub fn report_sizes() where $($($type_var : 'static),+)* {
         let machine_name = stringify!($machine);
         let machine_type = unsafe { ::std::intrinsics::type_name::<Self>() };
-        println!("{} report...", machine_name);
+        println!("{} report sizes...", machine_name);
         println!("  size of {}: {}", machine_type, ::std::mem::size_of::<Self>());
-        println!("...{} report", machine_name);
+        println!("...{} report sizes", machine_name);
       }
 
       pub fn new (mut extended_state : ExtendedState $(<$($type_var),+>)*)
