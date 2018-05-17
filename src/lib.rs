@@ -10,7 +10,7 @@
 //! - three *events*: one *internal event* `Knock` (with *action* on the
 //!   `Closed` state) and two *external events* `Open` (with associated action)
 //!   and `Close` (without any action)
-//! - an `open_count` *extended state variable* -- this variable is initialized
+//! - an *extended state variable* `open_count` -- this variable is initialized
 //!   once and is independent of the current machine state
 //!
 //! ```text
