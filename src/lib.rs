@@ -385,9 +385,21 @@ fn machine_dotfile <M : MachineDotfile>
             s.push_str ("<FONT FACE=\"Mono\"><BR/>");
             mono_font = true;
           }
+          // replace whitespace with single spaces
+          let action_string = {
+            let mut s : String = action.split_whitespace().map (
+              |s| {
+                let mut s = s.to_string();
+                s.push (' ');
+                s
+              }
+            ).collect();
+            assert_eq!(s.pop(), Some (' '));
+            s
+          };
           // TODO: different formatting if params or guards were present
           //action = "  ".to_string() + action.as_str();
-          s.push_str (format!("{}", escape (action.to_string())).as_str());
+          s.push_str (format!("{}", escape (action_string)).as_str());
         }
       }
     }
