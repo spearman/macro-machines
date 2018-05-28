@@ -4,6 +4,40 @@
 
 [Documentation](https://docs.rs/macro-machines)
 
+
+**Current features**
+
+- Macros for creating state machines with and without `Debug` and `Default`:
+    * `def_machine!` -- state machine implementing `Default` construction
+    * `def_machine_debug!` -- state machine implementing `Default` construction
+      and deriving `Debug`
+    * `def_machine_nodefault!` -- state machine requiring initialization
+      arguments
+    * `def_machine_nodefault_debug!` -- state machine requiring initialization
+      arguments and deriving `Debug`
+- Specified initial (required) and terminal (optional) states with (optional)
+  initialization and termination actions
+- States may have local state variables and state machines may have
+  extended state variables
+- Events with associated actions in which extended state variables may be
+  modified:
+    * External events -- transition from a specific source state to a specific
+      target state
+    * Internal events -- an event that is additionally allowed to modify local
+      state variables and leaves the current state unchanged
+    * Universal events -- transition from any source state to a specific target
+      state
+- Syntax allowing use of constrained type parameters in the types of extended
+  state variables
+- Logging using the `log` logging API
+- Graphviz DOT file generation of state machine transition diagrams
+
+
+**Current limitations**
+
+- Only trace messages are currently logged
+
+
 ## Usage
 
 The macros provided by this library expand to definitions using `const fn`s and
