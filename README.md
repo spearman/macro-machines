@@ -19,8 +19,8 @@
   initialization and termination actions
 - States may have local state variables and state machines may have
   extended state variables
-- Events with associated actions in which extended state variables may be
-  modified:
+- Events with optional associated parameters and actions in which extended state
+  variables may be modified:
     * External events -- transition from a specific source state to a specific
       target state
     * Internal events -- an event that is additionally allowed to modify local
@@ -35,7 +35,7 @@
 
 **Current limitations**
 
-- Only trace messages are currently logged
+- Only trace-level messages are currently logged
 
 
 ## Usage
