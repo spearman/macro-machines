@@ -679,7 +679,7 @@ macro_rules! def_machine {
       $($event {
         $($param_name : $param_type),*
       },)+
-      _PhantomData (std::marker::PhantomData <&'event ()>)
+      _PhantomData (::std::marker::PhantomData <&'event ()>)
     }
 
     impl $(<$($type_var),+>)* $machine $(<$($type_var),+>)* where
@@ -718,6 +718,12 @@ macro_rules! def_machine {
       #[inline]
       pub fn state_id (&self) -> StateId {
         self.state().id().clone()
+      }
+
+      #[allow(dead_code)]
+      #[inline]
+      pub fn state_data (&self) -> &StateData {
+        self.state().data()
       }
 
       #[allow(dead_code)]
@@ -1876,7 +1882,7 @@ macro_rules! def_machine_debug {
       $($event {
         $($param_name : $param_type),*
       },)+
-      _PhantomData (std::marker::PhantomData <&'event ()>)
+      _PhantomData (::std::marker::PhantomData <&'event ()>)
     }
 
     impl $(<$($type_var),+>)* $machine $(<$($type_var),+>)* where
@@ -1916,6 +1922,12 @@ macro_rules! def_machine_debug {
       #[inline]
       pub fn state_id (&self) -> StateId {
         self.state().id().clone()
+      }
+
+      #[allow(dead_code)]
+      #[inline]
+      pub fn state_data (&self) -> &StateData {
+        self.state().data()
       }
 
       #[allow(dead_code)]
