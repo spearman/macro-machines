@@ -101,14 +101,14 @@ pub trait MachineDotfile {
   fn event_actions()              -> Vec <&'static str>;
   // provided: these are intended to be called by the user
   /// Generate a DOT file for the state machine that hides default expressions
-  /// for state fields and extended state fields
+  /// for state fields and extended state fields, but shows event actions
   fn dotfile() -> String where Self : Sized {
-    machine_dotfile::<Self> (true, false)
+    machine_dotfile::<Self> (true, false, false)
   }
   /// Generate a DOT file for the state machine that shows default expressions
   /// for state fields and extended state fields
   fn dotfile_show_defaults() -> String where Self : Sized {
-    machine_dotfile::<Self> (false, false)
+    machine_dotfile::<Self> (false, false, false)
   }
   /// Generate a DOT file for the state machine that pretty prints the *values*
   /// of default expressions for state fields and extended state fields.
@@ -116,7 +116,11 @@ pub trait MachineDotfile {
   /// &#9888; Calling this this function evaluates default expressions and
   /// pretty prints the resulting values at runtime.
   fn dotfile_pretty_defaults() -> String where Self : Sized {
-    machine_dotfile::<Self> (false, true)
+    machine_dotfile::<Self> (false, true, false)
+  }
+  /// Do not show event actions
+  fn dotfile_hide_actions() -> String where Self : Sized {
+    machine_dotfile::<Self> (true, false, true)
   }
 }
 
@@ -134,7 +138,7 @@ pub enum HandleEventException {
 
 /// Private DOT file creation function
 fn machine_dotfile <M : MachineDotfile>
-  (hide_defaults : bool, pretty_defaults : bool) -> String
+  (hide_defaults : bool, pretty_defaults : bool, hide_actions : bool) -> String
 {
   let mut s = String::new();
   //
@@ -376,7 +380,7 @@ fn machine_dotfile <M : MachineDotfile>
     // guards
     // TODO
 
-    if !action.is_empty() {
+    if !hide_actions && !action.is_empty() {
       match action {
         // don't render empty actions
         "{}" | "{ }" => {}

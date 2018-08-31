@@ -55,7 +55,7 @@ fn main () {
 
   let dotfile_name = format!("{}.dot", example_name);
   let mut f = unwrap!{ std::fs::File::create (dotfile_name) };
-  unwrap!{ f.write_all (Door::dotfile().as_bytes()) };
+  unwrap!{ f.write_all (Door::dotfile_hide_actions().as_bytes()) };
   drop (f);
 
   let dotfile_name = format!("{}-show-defaults.dot", example_name);

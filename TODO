@@ -1,5 +1,6 @@
 - add event parameters to dotfile
-- add option to hide event actions in dotfiles
+x add option to hide event actions in dotfiles
+    - modify dotfile generation functions to use builder pattern
 - machine trait
 - currently only trace! log messages are defined, add debug, info, warn, error
   messages ?

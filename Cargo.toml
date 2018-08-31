@@ -1,6 +1,6 @@
 [package]
 name = "macro-machines"
-version = "0.8.5"
+version = "0.8.6"
 authors = ["Shane Pearman <spearman@github.com>"]
 license = "MPL-2.0"
 description = "State machine macros with logging and graphviz DOT file generation"
