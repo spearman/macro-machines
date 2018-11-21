@@ -19,7 +19,10 @@ macro_rules! def_machine {
       STATES [
         $(state $state:ident (
           $($data_name:ident : $data_type:ty $(= $data_default:expr)*),*
-        ))+
+        ) $({
+          $(entry $entry:block)*
+          $(exit  $exit:block)*
+        })*)+
       ]
       EVENTS [
         $(event $event:ident <$source:tt> $(=> <$target:ident>)*
@@ -42,13 +45,17 @@ macro_rules! def_machine {
 
   ) => {
 
-    def_machine!{
+    $crate::def_machine!{
       @base
       machine $machine
         $(<$($type_var $(: { $($type_constraint),+ })*),+>)*
       {
         STATES [
-          $(state $state ($($data_name : $data_type $(= $data_default)*),*))+
+          $(state $state ($($data_name : $data_type $(= $data_default)*),*)
+          $({
+            $(entry $entry)*
+            $(exit  $exit)*
+          })*)+
         ]
         EVENTS [
           $(event $event <$source> $(=> <$target>)*
@@ -76,16 +83,17 @@ macro_rules! def_machine {
     ),+)*
     {
       pub fn initial() -> Self {
-        trace!("{}::initial", stringify!($machine));
+        $crate::trace!("{}::initial", stringify!($machine));
         let mut extended_state = ExtendedState::initial();
         let state = StateId::$initial.to_state (&mut extended_state);
-        let mut _initial = Self { state, extended_state };
+        let mut initial = Self { state, extended_state };
         {
           $(#[allow(unused_variables)]
-          let $self_reference = &mut _initial;)*
+          let $self_reference = &mut initial;)*
           $($($initial_action)*)*
         }
-        _initial
+        initial.state_entry();
+        initial
       }
     }
 
@@ -196,7 +204,7 @@ macro_rules! def_machine {
           let mut _w = Vec::new();
           $(
           let default_val : $data_type
-            = def_machine!(@expr_default $($data_default)*);
+            = $crate::def_machine!(@expr_default $($data_default)*);
           _w.push (format!("{:#?}", default_val));
           )*
           v.push (_w);
@@ -240,7 +248,7 @@ macro_rules! def_machine {
     {
       pub fn initial() -> Self {
         Self {
-          $($ext_name: def_machine!(@expr_default $($ext_default)*)),*
+          $($ext_name: $crate::def_machine!(@expr_default $($ext_default)*)),*
         }
       }
 
@@ -248,7 +256,7 @@ macro_rules! def_machine {
       pub fn new ($($ext_name : Option <$ext_type>),*) -> Self {
         Self {
           $($ext_name: $ext_name.unwrap_or (
-            def_machine!(@expr_default $($ext_default)*))
+            $crate::def_machine!(@expr_default $($ext_default)*))
           ),*
         }
       }
@@ -268,7 +276,7 @@ macro_rules! def_machine {
         match id {
           $(EventId::$event => EventParams::$event {
             $($param_name:
-              def_machine!(@expr_default $($param_default)*)
+              $crate::def_machine!(@expr_default $($param_default)*)
             ),*
           }),+
         }
@@ -293,7 +301,10 @@ macro_rules! def_machine {
       STATES [
         $(state $state:ident (
           $($data_name:ident : $data_type:ty $(= $data_default:expr)*),*
-        ))+
+        ) $({
+          $(entry $entry:block)*
+          $(exit  $exit:block)*
+        })*)+
       ]
       EVENTS [
         $(event $event:ident <$source:tt> $(=> <$target:ident>)*
@@ -312,10 +323,14 @@ macro_rules! def_machine {
 
   ) => {
 
-    def_machine!{
+    $crate::def_machine!{
       machine $machine $(<$($type_var $(: { $($type_constraint),+ })*),+>)* {
         STATES [
-          $(state $state ($($data_name : $data_type $(= $data_default)*),*))+
+          $(state $state ($($data_name : $data_type $(= $data_default)*),*)
+          $({
+            $(entry $entry)*
+            $(exit  $exit)*
+          })*)+
         ]
         EVENTS [
           $(event $event <$source> $(=> <$target>)*
@@ -344,11 +359,6 @@ macro_rules! def_machine {
   //
   ( @impl_fn_handle_event
     machine $machine:ident {
-      STATES [
-        $(state $state:ident (
-          $($data_name:ident : $data_type:ty $(= $data_default:expr)*),*
-        ))+
-      ]
       EVENTS [
         $(event $event:ident <$source:tt> $(=> <$target:ident>)*
           ($($param_name:ident),*)
@@ -366,15 +376,15 @@ macro_rules! def_machine {
     pub fn handle_event (&mut self, mut _event : Event)
       -> Result <(), $crate::HandleEventException>
     {
-      trace!("{}::handle_event: {:?}", stringify!($machine), _event.id);
+      $crate::trace!("{}::handle_event: {:?}", stringify!($machine), _event.id);
       // if only one kind of transition exists the following match expression
       // will detect the other branch as "unreachable_code"
       #[allow(unreachable_code)]
       match _event.transition() {
-
         Transition::Universal (target_id) => {
-          trace!("<<< Ok: Universal ({:?} => {:?})", self.state.id, target_id);
-          {
+          $crate::trace!("<<< Ok: Universal ({:?} => {:?})", self.state.id, target_id);
+          self.state_exit();
+          { // event action
             // bring extended state variables into scope
             #[allow(unused_variables)]
             match &mut self.extended_state {
@@ -383,7 +393,7 @@ macro_rules! def_machine {
                 match _event.params {
                   $(EventParams::$event { $(ref mut $param_name,)*.. } => {
                     // only expands universal actions, unreachable otherwise
-                    def_machine!{
+                    $crate::def_machine!{
                       @event_action_universal
                       event $event <$source> $(=> <$target>)* $($action)*
                     }
@@ -395,12 +405,12 @@ macro_rules! def_machine {
           }
           let state  = target_id.to_state (&mut self.extended_state);
           self.state = state;
+          self.state_entry();
           Ok (())
         }
-
         Transition::Internal (source_id) => {
           if self.state.id == source_id {
-            trace!("<<< Ok: Internal ({:?})", source_id);
+            $crate::trace!("<<< Ok: Internal ({:?})", source_id);
             // bring extended state variables into scope
             #[allow(unused_variables)]
             match &mut self.extended_state {
@@ -414,12 +424,12 @@ macro_rules! def_machine {
                     // bring local state variables into scope
                     #[allow(unreachable_patterns)]
                     match &mut self.state.data {
-                      def_machine!{
+                      $crate::def_machine!{
                         @event_internal_state_pattern
                         $source { $($($state_data),*)* }
                       } => {
                         // only expands internal actions, unreachable otherwise
-                        def_machine!{
+                        $crate::def_machine!{
                           @event_action_internal
                           event $event <$source> $(=> <$target>)* $($action)*
                         }
@@ -433,44 +443,46 @@ macro_rules! def_machine {
             }
             Ok (())
           } else {
-            trace!("<<< Err: internal transition: \
+            $crate::trace!("<<< Err: internal transition: \
               current state ({:?}) != state ({:?})",
                 self.state.id, source_id);
             Err ($crate::HandleEventException::WrongState)
           }
         }
-
         Transition::External (source_id, target_id) => {
           if self.state.id == source_id {
-            trace!("<<< Ok: External ({:?} => {:?})", source_id, target_id);
-            // bring extended state variables into scope
-            #[allow(unused_variables)]
-            match &mut self.extended_state {
-              &mut ExtendedState { $(ref mut $ext_name,)*.. } => {
-                // map each event to an action
-                match _event.params {
-                  $(EventParams::$event { $(ref mut $param_name,)*.. } => {
-                    // only expands external actions, unreachable otherwise
-                    def_machine!{
-                      @event_action_external
-                      event $event <$source> $(=> <$target>)* $($action)*
-                    }
-                  })+
-                  _ => unreachable!("unreachable phantom data variant")
+            $crate::trace!("<<< Ok: External ({:?} => {:?})", source_id, target_id);
+            self.state_exit();
+            { // event action
+              // bring extended state variables into scope
+              #[allow(unused_variables)]
+              match &mut self.extended_state {
+                &mut ExtendedState { $(ref mut $ext_name,)*.. } => {
+                  // map each event to an action
+                  match _event.params {
+                    $(EventParams::$event { $(ref mut $param_name,)*.. } => {
+                      // only expands external actions, unreachable otherwise
+                      $crate::def_machine!{
+                        @event_action_external
+                        event $event <$source> $(=> <$target>)* $($action)*
+                      }
+                    })+
+                    _ => unreachable!("unreachable phantom data variant")
+                  }
                 }
               }
             }
             let state  = target_id.to_state (&mut self.extended_state);
             self.state = state;
+            self.state_entry();
             Ok (())
           } else {
-            trace!("<<< Err: external transition: \
+            $crate::trace!("<<< Err: external transition: \
               current state ({:?}) != source state ({:?})",
                 self.state.id, source_id);
             Err ($crate::HandleEventException::WrongState)
           }
         }
-
       } // end match transition
     } // end fn handle_event
 
@@ -602,7 +614,10 @@ macro_rules! def_machine {
       STATES [
         $(state $state:ident (
           $($data_name:ident : $data_type:ty $(= $data_default:expr)*),*
-        ))+
+        ) $({
+          $(entry $entry:block)*
+          $(exit  $exit:block)*
+        })*)+
       ]
       EVENTS [
         $(event $event:ident <$source:tt> $(=> <$target:ident>)*
@@ -698,14 +713,15 @@ macro_rules! def_machine {
       pub fn new (mut extended_state : ExtendedState $(<$($type_var),+>)*)
         -> Self
       {
-        let state    = StateId::$initial.to_state (&mut extended_state);
-        let mut _new = Self { state, extended_state };
+        let state   = StateId::$initial.to_state (&mut extended_state);
+        let mut new = Self { state, extended_state };
         {
           $(#[allow(unused_variables)]
-          let $self_reference = &mut _new;)*
+          let $self_reference = &mut new;)*
           $($($initial_action)*)*
         }
-        _new
+        new.state_entry();
+        new
       }
 
       #[allow(dead_code)]
@@ -740,12 +756,9 @@ macro_rules! def_machine {
         &mut self.extended_state
       }
 
-      def_machine!{
+      $crate::def_machine!{
         @impl_fn_handle_event
         machine $machine {
-          STATES [
-            $(state $state ($($data_name : $data_type $(= $data_default)*),*))+
-          ]
           EVENTS [
             $(event $event <$source> $(=> <$target>)*
               ($($param_name),*)
@@ -755,7 +768,36 @@ macro_rules! def_machine {
           EXTENDED [
             $($ext_name : $ext_type $(= $ext_default)*),*
           ]
-          $(self_reference: $self_reference)* 
+          $(self_reference: $self_reference)*
+        }
+      }
+
+      fn state_entry (&mut self) {
+        // bring extended state variables into scope
+        #[allow(unused_variables)]
+        match &mut self.extended_state {
+          &mut ExtendedState { $(ref mut $ext_name,)*.. } => {
+            match self.state.data {
+              // bring local state variables into scope
+              $(StateData::$state { $(ref mut $data_name,)*.. } => {
+                $($($entry)*)*
+              })+
+            }
+          }
+        }
+      }
+      fn state_exit (&mut self) {
+        // bring extended state variables into scope
+        #[allow(unused_variables)]
+        match &mut self.extended_state {
+          &mut ExtendedState { $(ref mut $ext_name,)*.. } => {
+            match self.state.data {
+              // bring local state variables into scope
+              $(StateData::$state { $(ref mut $data_name,)*.. } => {
+                $($($exit)*)*
+              })+
+            }
+          }
         }
       }
 
@@ -793,13 +835,14 @@ macro_rules! def_machine {
     ),+)*
     {
       fn drop (&mut self) {
-        trace!("{}::drop", stringify!($machine));
+        $crate::trace!("{}::drop", stringify!($machine));
+        self.state_exit();
         let _state_id = self.state.id.clone();
         $(#[allow(unused_variables)]
         let $self_reference = &mut *self;)*
         $(
         if _state_id != StateId::$terminal {
-          trace!("<<< current state ({:?}) != terminal state ({:?})",
+          $crate::trace!("<<< current state ({:?}) != terminal state ({:?})",
             _state_id, StateId::$terminal);
           $($($terminate_failure)*)*
         } else {
@@ -849,7 +892,7 @@ macro_rules! def_machine {
                   id:   self,
                   data: StateData::$state {
                     $($data_name:
-                      def_machine!(@expr_default $($data_default)*)
+                      $crate::def_machine!(@expr_default $($data_default)*)
                     ),*
                   }
                 }
@@ -865,7 +908,7 @@ macro_rules! def_machine {
         match *self {
           $(
           EventId::$event =>
-            def_machine!(@event_transition <$source> $(=> <$target>)*)
+            $crate::def_machine!(@event_transition <$source> $(=> <$target>)*)
           ),+
         }
       }
@@ -922,7 +965,10 @@ macro_rules! def_machine_nodefault {
       STATES [
         $(state $state:ident (
           $($data_name:ident : $data_type:ty $(= $data_default:expr)*),*
-        ))+
+        ) $({
+          $(entry $entry:block)*
+          $(exit  $exit:block)*
+        })*)+
       ]
       EVENTS [
         $(event $event:ident <$source:tt> $(=> <$target:ident>)*
@@ -945,13 +991,17 @@ macro_rules! def_machine_nodefault {
 
   ) => {
 
-    def_machine!{
+    $crate::def_machine!{
       @base
       machine $machine
         $(<$($type_var $(: { $($type_constraint),+ })*),+>)*
       {
         STATES [
-          $(state $state ($($data_name : $data_type $(= $data_default)*),*))+
+          $(state $state ($($data_name : $data_type $(= $data_default)*),*)
+          $({
+            $(entry $entry)*
+            $(exit  $exit)*
+          })*)+
         ]
         EVENTS [
           $(event $event <$source> $(=> <$target>)*
@@ -1114,7 +1164,7 @@ macro_rules! def_machine_nodefault {
               $ext_name
             } else {
               if let Some (default) =
-                def_machine!(@expr_option $($ext_default)*)
+                $crate::def_machine!(@expr_option $($ext_default)*)
               {
                 default
               } else {
@@ -1142,7 +1192,10 @@ macro_rules! def_machine_nodefault {
       STATES [
         $(state $state:ident (
           $($data_name:ident : $data_type:ty $(= $data_default:expr)*),*
-        ))+
+        ) $({
+          $(entry $entry:block)*
+          $(exit  $exit:block)*
+        })*)+
       ]
       EVENTS [
         $(event $event:ident <$source:tt> $(=> <$target:ident>)*
@@ -1161,10 +1214,14 @@ macro_rules! def_machine_nodefault {
 
   ) => {
 
-    def_machine_nodefault!{
+    $crate::def_machine_nodefault!{
       machine $machine $(<$($type_var $(: { $($type_constraint),+ })*),+>)* {
         STATES [
-          $(state $state ($($data_name : $data_type $(= $data_default)*),*))+
+          $(state $state ($($data_name : $data_type $(= $data_default)*),*)
+          $({
+            $(entry $entry)*
+            $(exit  $exit)*
+          })*)+
         ]
         EVENTS [
           $(event $event <$source> $(=> <$target>)*
@@ -1211,7 +1268,10 @@ macro_rules! def_machine_debug {
       STATES [
         $(state $state:ident (
           $($data_name:ident : $data_type:ty $(= $data_default:expr)*),*
-        ))+
+        ) $({
+          $(entry $entry:block)*
+          $(exit  $exit:block)*
+        })*)+
       ]
       EVENTS [
         $(event $event:ident <$source:tt> $(=> <$target:ident>)*
@@ -1234,13 +1294,17 @@ macro_rules! def_machine_debug {
 
   ) => {
 
-    def_machine_debug!{
+    $crate::def_machine_debug!{
       @base
       machine $machine
         $(<$($type_var $(: { $($type_constraint),+ })*),+>)*
       {
         STATES [
-          $(state $state ($($data_name : $data_type $(= $data_default)*),*))+
+          $(state $state ($($data_name : $data_type $(= $data_default)*),*)
+          $({
+            $(entry $entry)*
+            $(exit  $exit)*
+          })*)+
         ]
         EVENTS [
           $(event $event <$source> $(=> <$target>)*
@@ -1269,16 +1333,17 @@ macro_rules! def_machine_debug {
     ),+)*
     {
       pub fn initial() -> Self {
-        trace!("{}::initial", stringify!($machine));
+        $crate::trace!("{}::initial", stringify!($machine));
         let mut extended_state = ExtendedState::initial();
         let state = StateId::$initial.to_state (&mut extended_state);
-        let mut _initial = Self { state, extended_state };
+        let mut initial = Self { state, extended_state };
         {
           $(#[allow(unused_variables)]
-          let $self_reference = &mut _initial;)*
+          let $self_reference = &mut initial;)*
           $($($initial_action)*)*
         }
-        _initial
+        initial.state_entry();
+        initial
       }
     }
 
@@ -1390,7 +1455,7 @@ macro_rules! def_machine_debug {
           let mut _w = Vec::new();
           $(
           let default_val : $data_type
-            = def_machine_debug!(@expr_default $($data_default)*);
+            = $crate::def_machine_debug!(@expr_default $($data_default)*);
           _w.push (format!("{:#?}", default_val));
           )*
           v.push (_w);
@@ -1435,7 +1500,7 @@ macro_rules! def_machine_debug {
     {
       pub fn initial() -> Self {
         Self {
-          $($ext_name: def_machine_debug!(@expr_default $($ext_default)*)),*
+          $($ext_name: $crate::def_machine_debug!(@expr_default $($ext_default)*)),*
         }
       }
 
@@ -1443,7 +1508,7 @@ macro_rules! def_machine_debug {
       pub fn new ($($ext_name : Option <$ext_type>),*) -> Self {
         Self {
           $($ext_name: $ext_name.unwrap_or (
-            def_machine_debug!(@expr_default $($ext_default)*))
+            $crate::def_machine_debug!(@expr_default $($ext_default)*))
           ),*
         }
       }
@@ -1463,7 +1528,7 @@ macro_rules! def_machine_debug {
         match id {
           $(EventId::$event => EventParams::$event {
             $($param_name:
-              def_machine_debug!(@expr_default $($param_default)*)
+              $crate::def_machine_debug!(@expr_default $($param_default)*)
             ),*
           }),+
         }
@@ -1488,7 +1553,10 @@ macro_rules! def_machine_debug {
       STATES [
         $(state $state:ident (
           $($data_name:ident : $data_type:ty $(= $data_default:expr)*),*
-        ))+
+        ) $({
+          $(entry $entry:block)*
+          $(exit  $exit:block)*
+        })*)+
       ]
       EVENTS [
         $(event $event:ident <$source:tt> $(=> <$target:ident>)*
@@ -1507,10 +1575,14 @@ macro_rules! def_machine_debug {
 
   ) => {
 
-    def_machine_debug!{
+    $crate::def_machine_debug!{
       machine $machine $(<$($type_var $(: { $($type_constraint),+ })*),+>)* {
         STATES [
-          $(state $state ($($data_name : $data_type $(= $data_default)*),*))+
+          $(state $state ($($data_name : $data_type $(= $data_default)*),*)
+          $({
+            $(entry $entry)*
+            $(exit  $exit)*
+          })*)+
         ]
         EVENTS [
           $(event $event <$source> $(=> <$target>)*
@@ -1539,11 +1611,6 @@ macro_rules! def_machine_debug {
   //
   ( @impl_fn_handle_event
     machine $machine:ident {
-      STATES [
-        $(state $state:ident (
-          $($data_name:ident : $data_type:ty $(= $data_default:expr)*),*
-        ))+
-      ]
       EVENTS [
         $(event $event:ident <$source:tt> $(=> <$target:ident>)*
           ($($param_name:ident),*)
@@ -1561,15 +1628,15 @@ macro_rules! def_machine_debug {
     pub fn handle_event (&mut self, mut _event : Event)
       -> Result <(), $crate::HandleEventException>
     {
-      trace!("{}::handle_event: {:?}", stringify!($machine), _event);
+      $crate::trace!("{}::handle_event: {:?}", stringify!($machine), _event.id);
       // if only one kind of transition exists the following match expression
       // will detect the other branch as "unreachable_code"
       #[allow(unreachable_code)]
       match _event.transition() {
-
         Transition::Universal (target_id) => {
-          trace!("<<< Ok: Universal ({:?} => {:?})", self.state.id, target_id);
-          {
+          $crate::trace!("<<< Ok: Universal ({:?} => {:?})", self.state.id, target_id);
+          self.state_exit();
+          { // event action
             // bring extended state variables into scope
             #[allow(unused_variables)]
             match &mut self.extended_state {
@@ -1578,7 +1645,7 @@ macro_rules! def_machine_debug {
                 match _event.params {
                   $(EventParams::$event { $(ref mut $param_name,)*.. } => {
                     // only expands universal actions, unreachable otherwise
-                    def_machine_debug!{
+                    $crate::def_machine_debug!{
                       @event_action_universal
                       event $event <$source> $(=> <$target>)* $($action)*
                     }
@@ -1590,12 +1657,12 @@ macro_rules! def_machine_debug {
           }
           let state  = target_id.to_state (&mut self.extended_state);
           self.state = state;
+          self.state_entry();
           Ok (())
         }
-
         Transition::Internal (source_id) => {
           if self.state.id == source_id {
-            trace!("<<< Ok: Internal ({:?})", source_id);
+            $crate::trace!("<<< Ok: Internal ({:?})", source_id);
             // bring extended state variables into scope
             #[allow(unused_variables)]
             match &mut self.extended_state {
@@ -1609,12 +1676,12 @@ macro_rules! def_machine_debug {
                     // bring local state variables into scope
                     #[allow(unreachable_patterns)]
                     match &mut self.state.data {
-                      def_machine_debug!{
+                      $crate::def_machine_debug!{
                         @event_internal_state_pattern
                         $source { $($($state_data),*)* }
                       } => {
                         // only expands internal actions, unreachable otherwise
-                        def_machine_debug!{
+                        $crate::def_machine_debug!{
                           @event_action_internal
                           event $event <$source> $(=> <$target>)* $($action)*
                         }
@@ -1628,44 +1695,46 @@ macro_rules! def_machine_debug {
             }
             Ok (())
           } else {
-            trace!("<<< Err: internal transition: \
+            $crate::trace!("<<< Err: internal transition: \
               current state ({:?}) != state ({:?})",
                 self.state.id, source_id);
             Err ($crate::HandleEventException::WrongState)
           }
         }
-
         Transition::External (source_id, target_id) => {
           if self.state.id == source_id {
-            trace!("<<< Ok: External ({:?} => {:?})", source_id, target_id);
-            // bring extended state variables into scope
-            #[allow(unused_variables)]
-            match &mut self.extended_state {
-              &mut ExtendedState { $(ref mut $ext_name,)*.. } => {
-                // map each event to an action
-                match _event.params {
-                  $(EventParams::$event { $(ref mut $param_name,)*.. } => {
-                    // only expands external actions, unreachable otherwise
-                    def_machine_debug!{
-                      @event_action_external
-                      event $event <$source> $(=> <$target>)* $($action)*
-                    }
-                  })+
-                  _ => unreachable!("unreachable phantom data variant")
+            $crate::trace!("<<< Ok: External ({:?} => {:?})", source_id, target_id);
+            self.state_exit();
+            { // event action
+              // bring extended state variables into scope
+              #[allow(unused_variables)]
+              match &mut self.extended_state {
+                &mut ExtendedState { $(ref mut $ext_name,)*.. } => {
+                  // map each event to an action
+                  match _event.params {
+                    $(EventParams::$event { $(ref mut $param_name,)*.. } => {
+                      // only expands external actions, unreachable otherwise
+                      $crate::def_machine_debug!{
+                        @event_action_external
+                        event $event <$source> $(=> <$target>)* $($action)*
+                      }
+                    })+
+                    _ => unreachable!("unreachable phantom data variant")
+                  }
                 }
               }
             }
             let state  = target_id.to_state (&mut self.extended_state);
             self.state = state;
+            self.state_entry();
             Ok (())
           } else {
-            trace!("<<< Err: external transition: \
+            $crate::trace!("<<< Err: external transition: \
               current state ({:?}) != source state ({:?})",
                 self.state.id, source_id);
             Err ($crate::HandleEventException::WrongState)
           }
         }
-
       }
     } // end handle event
 
@@ -1797,7 +1866,10 @@ macro_rules! def_machine_debug {
       STATES [
         $(state $state:ident (
           $($data_name:ident : $data_type:ty $(= $data_default:expr)*),*
-        ))+
+        ) $({
+          $(entry $entry:block)*
+          $(exit  $exit:block)*
+        })*)+
       ]
       EVENTS [
         $(event $event:ident <$source:tt> $(=> <$target:ident>)*
@@ -1902,14 +1974,15 @@ macro_rules! def_machine_debug {
       pub fn new (mut extended_state : ExtendedState $(<$($type_var),+>)*)
         -> Self
       {
-        let state    = StateId::$initial.to_state (&mut extended_state);
-        let mut _new = Self { state, extended_state };
+        let state   = StateId::$initial.to_state (&mut extended_state);
+        let mut new = Self { state, extended_state };
         {
           $(#[allow(unused_variables)]
-          let $self_reference = &mut _new;)*
+          let $self_reference = &mut new;)*
           $($($initial_action)*)*
         }
-        _new
+        new.state_entry();
+        new
       }
 
       #[allow(dead_code)]
@@ -1936,12 +2009,9 @@ macro_rules! def_machine_debug {
         &self.extended_state
       }
 
-      def_machine_debug!{
+      $crate::def_machine_debug!{
         @impl_fn_handle_event
         machine $machine {
-          STATES [
-            $(state $state ($($data_name : $data_type $(= $data_default)*),*))+
-          ]
           EVENTS [
             $(event $event <$source> $(=> <$target>)*
               ($($param_name),*)
@@ -1952,6 +2022,35 @@ macro_rules! def_machine_debug {
             $($ext_name : $ext_type $(= $ext_default)*),*
           ]
           $(self_reference: $self_reference)*
+        }
+      }
+
+      fn state_entry (&mut self) {
+        // bring extended state variables into scope
+        #[allow(unused_variables)]
+        match &mut self.extended_state {
+          &mut ExtendedState { $(ref mut $ext_name,)*.. } => {
+            match self.state.data {
+              // bring local state variables into scope
+              $(StateData::$state { $(ref mut $data_name,)*.. } => {
+                $($($entry)*)*
+              })+
+            }
+          }
+        }
+      }
+      fn state_exit (&mut self) {
+        // bring extended state variables into scope
+        #[allow(unused_variables)]
+        match &mut self.extended_state {
+          &mut ExtendedState { $(ref mut $ext_name,)*.. } => {
+            match self.state.data {
+              // bring local state variables into scope
+              $(StateData::$state { $(ref mut $data_name,)*.. } => {
+                $($($exit)*)*
+              })+
+            }
+          }
         }
       }
 
@@ -1992,13 +2091,14 @@ macro_rules! def_machine_debug {
     ),+)*
     {
       fn drop (&mut self) {
-        trace!("{}::drop", stringify!($machine));
+        $crate::trace!("{}::drop", stringify!($machine));
+        self.state_exit();
         let _state_id = self.state.id.clone();
         $(#[allow(unused_variables)]
         let $self_reference = &mut *self;)*
         $(
         if _state_id != StateId::$terminal {
-          trace!("<<< current state ({:?}) != terminal state ({:?})",
+          $crate::trace!("<<< current state ({:?}) != terminal state ({:?})",
             _state_id, StateId::$terminal);
           $($($terminate_failure)*)*
         } else {
@@ -2049,7 +2149,7 @@ macro_rules! def_machine_debug {
                   id:   self,
                   data: StateData::$state {
                     $($data_name:
-                      def_machine_debug!(@expr_default $($data_default)*)
+                      $crate::def_machine_debug!(@expr_default $($data_default)*)
                     ),*
                   }
                 }
@@ -2065,7 +2165,7 @@ macro_rules! def_machine_debug {
         match *self {
           $(
           EventId::$event =>
-            def_machine_debug!(@event_transition <$source> $(=> <$target>)*)
+            $crate::def_machine_debug!(@event_transition <$source> $(=> <$target>)*)
           ),+
         }
       }
@@ -2122,7 +2222,10 @@ macro_rules! def_machine_nodefault_debug {
       STATES [
         $(state $state:ident (
           $($data_name:ident : $data_type:ty $(= $data_default:expr)*),*
-        ))+
+        ) $({
+          $(entry $entry:block)*
+          $(exit  $exit:block)*
+        })*)+
       ]
       EVENTS [
         $(event $event:ident <$source:tt> $(=> <$target:ident>)*
@@ -2145,13 +2248,17 @@ macro_rules! def_machine_nodefault_debug {
 
   ) => {
 
-    def_machine_debug!{
+    $crate::def_machine_debug!{
       @base
       machine $machine
         $(<$($type_var $(: { $($type_constraint),+ })*),+>)*
       {
         STATES [
-          $(state $state ($($data_name : $data_type $(= $data_default)*),*))+
+          $(state $state ($($data_name : $data_type $(= $data_default)*),*)
+          $({
+            $(entry $entry)*
+            $(exit  $exit)*
+          })*)+
         ]
         EVENTS [
           $(event $event <$source> $(=> <$target>)*
@@ -2317,7 +2424,7 @@ macro_rules! def_machine_nodefault_debug {
               $ext_name
             } else {
               if let Some (default) =
-                def_machine_debug!(@expr_option $($ext_default)*)
+                $crate::def_machine_debug!(@expr_option $($ext_default)*)
               {
                 default
               } else {
@@ -2346,7 +2453,10 @@ macro_rules! def_machine_nodefault_debug {
       STATES [
         $(state $state:ident (
           $($data_name:ident : $data_type:ty $(= $data_default:expr)*),*
-        ))+
+        ) $({
+          $(entry $entry:block)*
+          $(exit  $exit:block)*
+        })*)+
       ]
       EVENTS [
         $(event $event:ident <$source:tt> $(=> <$target:ident>)*
@@ -2365,10 +2475,14 @@ macro_rules! def_machine_nodefault_debug {
 
   ) => {
 
-    def_machine_nodefault_debug!{
+    $crate::def_machine_nodefault_debug!{
       machine $machine $(<$($type_var $(: { $($type_constraint),+ })*),+>)* {
         STATES [
-          $(state $state ($($data_name : $data_type $(= $data_default)*),*))+
+          $(state $state ($($data_name : $data_type $(= $data_default)*),*)
+          $({
+            $(entry $entry)*
+            $(exit  $exit)*
+          })*)+
         ]
         EVENTS [
           $(event $event <$source> $(=> <$target>)*

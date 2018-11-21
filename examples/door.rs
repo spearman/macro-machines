@@ -9,8 +9,12 @@ extern crate simplelog;
 def_machine_debug! {
   Door (open_count : u64) @ door {
     STATES [
-      state Closed (knock_count : u64)
-      state Opened ()
+      state Closed (knock_count : u64) {
+        exit { println!("final knock count: {}", knock_count); }
+      }
+      state Opened () {
+        entry { println!("open count: {}", open_count); }
+      }
     ]
     EVENTS [
       event Knock <Closed> () { knock_count } => { *knock_count += 1; }
@@ -18,16 +22,10 @@ def_machine_debug! {
       event Close <Opened> => <Closed> ()
     ]
     initial_state:  Closed {
-      initial_action: {
-        println!("hello");
-        println!("open_count: {:?}", door.as_ref().open_count);
-      }
+      initial_action: { println!("hello"); }
     }
     terminal_state: Closed {
-      terminate_success: {
-        println!("open_count: {:?}", door.as_ref().open_count);
-        println!("goodbye")
-      }
+      terminate_success: { println!("goodbye") }
       terminate_failure: {
         panic!("door was left: {:?}", door.state())
       }

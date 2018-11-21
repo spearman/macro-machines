@@ -5,3 +5,5 @@ x add option to hide event actions in dotfiles
 - currently only trace! log messages are defined, add debug, info, warn, error
   messages ?
 - reduce duplication if possible between the debug/non-debug macros
+x state entry/exit actions
+    - option to show entry/exit actions in state machine dotfile
