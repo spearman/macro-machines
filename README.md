@@ -47,13 +47,12 @@ the crate root:
 ```rust
 #![feature(const_fn)]
 #![feature(core_intrinsics)]
-
-#[macro_use] extern crate macro_machines;
 ```
 
 Define and use a minimal state machine:
 
 ```rust
+use macro_machines::def_machine_debug;
 def_machine_debug!{
   machine M {
     STATES [

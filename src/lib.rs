@@ -81,12 +81,8 @@
 //! ![](https://raw.githubusercontent.com/spearman/macro-machines/master/door.png)
 
 extern crate marksman_escape;
-extern crate log;
-
-// NOTE: macro documentation is not hidden (Rust 1.27.0):
-// <https://github.com/rust-lang/rust/issues/50647>
-#[doc(hidden)]
-pub use log::{log, trace, debug, info, warn, error};
+pub extern crate log;
+pub extern crate variant_count;
 
 #[macro_use] mod macro_def;
 

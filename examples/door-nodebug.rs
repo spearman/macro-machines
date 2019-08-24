@@ -1,10 +1,12 @@
 #![feature(const_fn)]
 #![feature(core_intrinsics)]
 
-#[macro_use] extern crate unwrap;
 extern crate simplelog;
+extern crate unwrap;
+use unwrap::unwrap;
 
-#[macro_use] extern crate macro_machines;
+extern crate macro_machines;
+use macro_machines::def_machine;
 
 def_machine! {
   Door (open_count : u64) @ door {
@@ -45,11 +47,13 @@ fn main () {
     .file_name().unwrap().to_str().unwrap().to_string();
   println!("{}", format!("{} main...", example_name));
 
-  unwrap!{
-    simplelog::TermLogger::init (
-      LOG_LEVEL_FILTER,
-      simplelog::Config::default())
-  };
+  unwrap!(simplelog::TermLogger::init (LOG_LEVEL_FILTER,
+    simplelog::Config {
+      thread: None,
+      target: Some (simplelog::Level::Error),
+      .. simplelog::Config::default()
+    },
+    simplelog::TerminalMode::Stdout));
 
   Door::report_sizes();
 
