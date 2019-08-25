@@ -27,23 +27,22 @@ def_machine_nodefault_debug!{
   }
 }
 
-pub const LOG_LEVEL_FILTER : simplelog::LevelFilter
-  = simplelog::LevelFilter::Trace;
-
 fn main () {
   use std::io::Write;
-  use macro_machines::*;
-  let example_name = std::path::PathBuf::from (std::env::args().next().unwrap())
-    .file_name().unwrap().to_str().unwrap().to_string();
-  println!("{}", format!("{} main...", example_name));
+  use macro_machines::{HandleEventException, MachineDotfile};
 
-  unwrap!(simplelog::TermLogger::init (LOG_LEVEL_FILTER,
-    simplelog::Config {
-      thread: None,
-      target: Some (simplelog::Level::Error),
-      .. simplelog::Config::default()
-    },
-    simplelog::TerminalMode::Stdout));
+  let example_name = std::env::current_exe().unwrap().file_name().unwrap()
+    .to_str().unwrap().to_string();
+  println!("{}: main...", example_name);
+
+  simplelog::TermLogger::init (
+    simplelog::LevelFilter::Trace,
+    simplelog::ConfigBuilder::new()
+      .set_target_level (simplelog::LevelFilter::Error)
+      .set_thread_level (simplelog::LevelFilter::Off)
+      .build(),
+    simplelog::TerminalMode::Stdout
+  ).unwrap();
 
   G::<u8>::report_sizes();
   G::<f64>::report_sizes();
@@ -56,8 +55,7 @@ fn main () {
 
   //let mut g = G::<std::sync::mpsc::Receiver <f64>>::initial();
   let mut g = G::<f64>::new (
-    ExtendedState::new (Some (Default::default()), None, Some (10)).unwrap()
-  );
+    ExtendedState::new (Some (Default::default()), None, Some (10)).unwrap());
   println!("g: {:?}", g);
 
   let e = EventParams::A{}.into();
@@ -67,5 +65,5 @@ fn main () {
   let e = EventParams::A{}.into();
   assert_eq!(g.handle_event (e), Err (HandleEventException::WrongState));
 
-  println!("{}", format!("...{} main", example_name));
+  println!("{}: ...main", example_name);
 }

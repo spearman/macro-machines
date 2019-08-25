@@ -37,34 +37,33 @@ def_machine! {
   }
 }
 
-pub const LOG_LEVEL_FILTER : simplelog::LevelFilter
-  = simplelog::LevelFilter::Trace;
-
 fn main () {
   use std::io::Write;
   use macro_machines::MachineDotfile;
-  let example_name = std::path::PathBuf::from (std::env::args().next().unwrap())
-    .file_name().unwrap().to_str().unwrap().to_string();
-  println!("{}", format!("{} main...", example_name));
 
-  unwrap!(simplelog::TermLogger::init (LOG_LEVEL_FILTER,
-    simplelog::Config {
-      thread: None,
-      target: Some (simplelog::Level::Error),
-      .. simplelog::Config::default()
-    },
-    simplelog::TerminalMode::Stdout));
+  let example_name = std::env::current_exe().unwrap().file_name().unwrap()
+    .to_str().unwrap().to_string();
+  println!("{}: main...", example_name);
+
+  simplelog::TermLogger::init (
+    simplelog::LevelFilter::Trace,
+    simplelog::ConfigBuilder::new()
+      .set_target_level (simplelog::LevelFilter::Error)
+      .set_thread_level (simplelog::LevelFilter::Off)
+      .build(),
+    simplelog::TerminalMode::Stdout
+  ).unwrap();
 
   Door::report_sizes();
 
   let dotfile_name = format!("{}.dot", example_name);
-  let mut f = unwrap!{ std::fs::File::create (dotfile_name) };
-  unwrap!{ f.write_all (Door::dotfile_hide_actions().as_bytes()) };
+  let mut f = unwrap!(std::fs::File::create (dotfile_name));
+  unwrap!(f.write_all (Door::dotfile_hide_actions().as_bytes()));
   drop (f);
 
   let dotfile_name = format!("{}-show-defaults.dot", example_name);
-  let mut f = unwrap!{ std::fs::File::create (dotfile_name) };
-  unwrap!{ f.write_all (Door::dotfile_show_defaults().as_bytes()) };
+  let mut f = unwrap!(std::fs::File::create (dotfile_name));
+  unwrap!(f.write_all (Door::dotfile_show_defaults().as_bytes()));
   drop (f);
 
   let mut door = Door::initial();
@@ -75,5 +74,5 @@ fn main () {
   let e = Event::from_id (EventId::Close);
   unwrap!(door.handle_event (e));
 
-  println!("{}", format!("...{} main", example_name));
+  println!("{}: ...main", example_name);
 }

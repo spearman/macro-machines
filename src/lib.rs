@@ -243,8 +243,7 @@ fn machine_dotfile <M : MachineDotfile>
     s.push_str ("\n      ");
   }
 
-  // extended state transitions
-  // TODO
+  // TODO: extended state transitions
 
   if mono_font {
     s.push_str ("</FONT><BR/>");

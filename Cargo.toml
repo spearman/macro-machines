@@ -14,5 +14,5 @@ marksman_escape = "0.1.*"
 variant_count = "1.*"
 
 [dev-dependencies]
-simplelog = "0.6.*"
+simplelog = "0.7.*"
 unwrap = "1.*"

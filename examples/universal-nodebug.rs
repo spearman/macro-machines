@@ -25,23 +25,22 @@ def_machine!{
   }
 }
 
-pub const LOG_LEVEL_FILTER : simplelog::LevelFilter
-  = simplelog::LevelFilter::Trace;
-
 fn main () {
   use std::io::Write;
   use macro_machines::{HandleEventException, MachineDotfile};
-  let example_name = std::path::PathBuf::from (std::env::args().next().unwrap())
-    .file_name().unwrap().to_str().unwrap().to_string();
-  println!("{}", format!("{} main...", example_name));
 
-  unwrap!(simplelog::TermLogger::init (LOG_LEVEL_FILTER,
-    simplelog::Config {
-      thread: None,
-      target: Some (simplelog::Level::Error),
-      .. simplelog::Config::default()
-    },
-    simplelog::TerminalMode::Stdout));
+  let example_name = std::env::current_exe().unwrap().file_name().unwrap()
+    .to_str().unwrap().to_string();
+  println!("{}: main...", example_name);
+
+  simplelog::TermLogger::init (
+    simplelog::LevelFilter::Trace,
+    simplelog::ConfigBuilder::new()
+      .set_target_level (simplelog::LevelFilter::Error)
+      .set_thread_level (simplelog::LevelFilter::Off)
+      .build(),
+    simplelog::TerminalMode::Stdout
+  ).unwrap();
 
   M::report_sizes();
 
@@ -60,5 +59,5 @@ fn main () {
   let e = Event::from_id (EventId::ToS);
   assert_eq!(m.handle_event (e), Err (HandleEventException::WrongState));
 
-  println!("{}", format!("...{} main", example_name));
+  println!("{}: ...main", example_name);
 }

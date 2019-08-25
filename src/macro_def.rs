@@ -112,7 +112,7 @@ macro_rules! def_machine {
         $($(
         _v.push (format!(
           "{} = {}", stringify!($type_var),
-            unsafe { ::std::intrinsics::type_name::<$type_var>() }));
+            unsafe { std::intrinsics::type_name::<$type_var>() }));
         )+)*
         _v
       }
@@ -376,13 +376,16 @@ macro_rules! def_machine {
     pub fn handle_event (&mut self, mut _event : Event)
       -> Result <(), $crate::HandleEventException>
     {
-      $crate::log::trace!("{}::handle_event: {:?}", stringify!($machine), _event.id);
+      $crate::log::trace!("{}::handle_event: {:?}",
+        stringify!($machine), _event.id);
       // if only one kind of transition exists the following match expression
       // will detect the other branch as "unreachable_code"
       #[allow(unreachable_code)]
       match _event.transition() {
         Transition::Universal (target_id) => {
-          $crate::log::trace!("<<< Ok: Universal ({:?} => {:?})", self.state.id, target_id);
+          $crate::log::trace!("{}::handle_event: <<< Ok: \
+            Universal ({:?} => {:?})",
+            stringify!($machine), self.state.id, target_id);
           self.state_exit();
           { // event action
             // bring extended state variables into scope
@@ -410,7 +413,8 @@ macro_rules! def_machine {
         }
         Transition::Internal (source_id) => {
           if self.state.id == source_id {
-            $crate::log::trace!("<<< Ok: Internal ({:?})", source_id);
+            $crate::log::trace!("{}::handle_event: <<< Ok: Internal ({:?})",
+              stringify!($machine), source_id);
             // bring extended state variables into scope
             #[allow(unused_variables)]
             match &mut self.extended_state {
@@ -443,15 +447,17 @@ macro_rules! def_machine {
             }
             Ok (())
           } else {
-            $crate::log::trace!("<<< Err: internal transition: \
-              current state ({:?}) != state ({:?})",
-                self.state.id, source_id);
+            $crate::log::trace!("{}::handle_event: <<< Err: \
+              internal transition current state ({:?}) != state ({:?})",
+                stringify!($machine), self.state.id, source_id);
             Err ($crate::HandleEventException::WrongState)
           }
         }
         Transition::External (source_id, target_id) => {
           if self.state.id == source_id {
-            $crate::log::trace!("<<< Ok: External ({:?} => {:?})", source_id, target_id);
+            $crate::log::trace!("{}::handle_event: <<< Ok: \
+              External ({:?} => {:?})",
+              stringify!($machine), source_id, target_id);
             self.state_exit();
             { // event action
               // bring extended state variables into scope
@@ -477,9 +483,9 @@ macro_rules! def_machine {
             self.state_entry();
             Ok (())
           } else {
-            $crate::log::trace!("<<< Err: external transition: \
-              current state ({:?}) != source state ({:?})",
-                self.state.id, source_id);
+            $crate::log::trace!("{}::handle_event: <<< Err: \
+              external transition current state ({:?}) != source state ({:?})",
+                stringify!($machine), self.state.id, source_id);
             Err ($crate::HandleEventException::WrongState)
           }
         }
@@ -704,10 +710,11 @@ macro_rules! def_machine {
     {
       pub fn report_sizes() where $($($type_var : 'static),+)* {
         let machine_name = stringify!($machine);
-        let machine_type = unsafe { ::std::intrinsics::type_name::<Self>() };
-        println!("{} report sizes...", machine_name);
-        println!("  size of {}: {}", machine_type, ::std::mem::size_of::<Self>());
-        println!("...{} report sizes", machine_name);
+        let machine_type = unsafe { std::intrinsics::type_name::<Self>() };
+        println!("{}::report_sizes...", machine_name);
+        println!("  size of {}: {}", machine_type,
+          std::mem::size_of::<Self>());
+        println!("...{}::report_sizes", machine_name);
       }
 
       pub fn new (mut extended_state : ExtendedState $(<$($type_var),+>)*)
@@ -842,8 +849,9 @@ macro_rules! def_machine {
         let $self_reference = &mut *self;)*
         $(
         if _state_id != StateId::$terminal {
-          $crate::log::trace!("<<< current state ({:?}) != terminal state ({:?})",
-            _state_id, StateId::$terminal);
+          $crate::log::trace!("{}::drop failure: \
+            current state ({:?}) != terminal state ({:?})",
+              stringify!($machine), _state_id, StateId::$terminal);
           $($($terminate_failure)*)*
         } else {
           $($($terminate_success)*)*
@@ -1038,7 +1046,7 @@ macro_rules! def_machine_nodefault {
         $($(
         _v.push (format!(
           "{} = {}", stringify!($type_var),
-            unsafe { ::std::intrinsics::type_name::<$type_var>() }));
+            unsafe { std::intrinsics::type_name::<$type_var>() }));
         )+)*
         _v
       }
@@ -1328,7 +1336,7 @@ macro_rules! def_machine_debug {
 
     impl $(<$($type_var),+>)* $machine $(<$($type_var),+>)* where
     $($(
-      $type_var : ::std::fmt::Debug,
+      $type_var : std::fmt::Debug,
       $($($type_var : $type_constraint),+)*
     ),+)*
     {
@@ -1351,7 +1359,7 @@ macro_rules! def_machine_debug {
       for $machine $(<$($type_var),+>)*
     where
     $($(
-      $type_var : ::std::fmt::Debug,
+      $type_var : std::fmt::Debug,
       $($($type_var : $type_constraint),+)*
     ),+)*
     {
@@ -1363,7 +1371,7 @@ macro_rules! def_machine_debug {
         $($(
         _v.push (format!(
           "{} = {}", stringify!($type_var),
-            unsafe { ::std::intrinsics::type_name::<$type_var>() }));
+            unsafe { std::intrinsics::type_name::<$type_var>() }));
         )+)*
         _v
       }
@@ -1494,7 +1502,7 @@ macro_rules! def_machine_debug {
 
     impl $(<$($type_var),+>)* ExtendedState $(<$($type_var),+>)* where
     $($(
-      $type_var : ::std::fmt::Debug,
+      $type_var : std::fmt::Debug,
       $($($type_var : $type_constraint),+)*
     ),+)*
     {
@@ -1634,7 +1642,9 @@ macro_rules! def_machine_debug {
       #[allow(unreachable_code)]
       match _event.transition() {
         Transition::Universal (target_id) => {
-          $crate::log::trace!("<<< Ok: Universal ({:?} => {:?})", self.state.id, target_id);
+          $crate::log::trace!("{}::handle_event: <<< Ok: \
+            Universal ({:?} => {:?})",
+            stringify!($machine), self.state.id, target_id);
           self.state_exit();
           { // event action
             // bring extended state variables into scope
@@ -1662,7 +1672,8 @@ macro_rules! def_machine_debug {
         }
         Transition::Internal (source_id) => {
           if self.state.id == source_id {
-            $crate::log::trace!("<<< Ok: Internal ({:?})", source_id);
+            $crate::log::trace!("{}::handle_event: <<< Ok: Internal ({:?})",
+              stringify!($machine), source_id);
             // bring extended state variables into scope
             #[allow(unused_variables)]
             match &mut self.extended_state {
@@ -1695,15 +1706,17 @@ macro_rules! def_machine_debug {
             }
             Ok (())
           } else {
-            $crate::log::trace!("<<< Err: internal transition: \
-              current state ({:?}) != state ({:?})",
-                self.state.id, source_id);
+            $crate::log::trace!("{}::handle_event: <<< Err: \
+              internal transition current state ({:?}) != state ({:?})",
+                stringify!($machine), self.state.id, source_id);
             Err ($crate::HandleEventException::WrongState)
           }
         }
         Transition::External (source_id, target_id) => {
           if self.state.id == source_id {
-            $crate::log::trace!("<<< Ok: External ({:?} => {:?})", source_id, target_id);
+            $crate::log::trace!("{}::handle_event: <<< Ok: \
+              External ({:?} => {:?})",
+              stringify!($machine), source_id, target_id);
             self.state_exit();
             { // event action
               // bring extended state variables into scope
@@ -1729,9 +1742,9 @@ macro_rules! def_machine_debug {
             self.state_entry();
             Ok (())
           } else {
-            $crate::log::trace!("<<< Err: external transition: \
-              current state ({:?}) != source state ({:?})",
-                self.state.id, source_id);
+            $crate::log::trace!("{}::handle_event: <<< Err: \
+              external transition current state ({:?}) != source state ({:?})",
+                stringify!($machine), self.state.id, source_id);
             Err ($crate::HandleEventException::WrongState)
           }
         }
@@ -1895,7 +1908,7 @@ macro_rules! def_machine_debug {
     #[derive(Debug)]
     pub struct $machine $(<$($type_var),+>)* where
     $($(
-      $type_var : ::std::fmt::Debug,
+      $type_var : std::fmt::Debug,
       $($($type_var : $type_constraint),+)*
     ),+)*
     {
@@ -1912,7 +1925,7 @@ macro_rules! def_machine_debug {
     #[derive(Debug)]
     pub struct ExtendedState $(<$($type_var),+>)* where
     $($(
-      $type_var : ::std::fmt::Debug,
+      $type_var : std::fmt::Debug,
       $($($type_var : $type_constraint),+)*
     ),+)*
     {
@@ -1959,15 +1972,15 @@ macro_rules! def_machine_debug {
 
     impl $(<$($type_var),+>)* $machine $(<$($type_var),+>)* where
     $($(
-      $type_var : ::std::fmt::Debug,
+      $type_var : std::fmt::Debug,
       $($($type_var : $type_constraint),+)*
     ),+)*
     {
       pub fn report_sizes() where $($($type_var : 'static),+)* {
         let machine_name = stringify!($machine);
-        let machine_type = unsafe { ::std::intrinsics::type_name::<Self>() };
+        let machine_type = unsafe { std::intrinsics::type_name::<Self>() };
         println!("{} report sizes...", machine_name);
-        println!("  size of {}: {}", machine_type, ::std::mem::size_of::<Self>());
+        println!("  size of {}: {}", machine_type, std::mem::size_of::<Self>());
         println!("...{} report sizes", machine_name);
       }
 
@@ -2060,7 +2073,7 @@ macro_rules! def_machine_debug {
       for $machine $(<$($type_var),+>)*
     where
     $($(
-      $type_var : ::std::fmt::Debug,
+      $type_var : std::fmt::Debug,
       $($($type_var : $type_constraint),+)*
     ),+)*
     {
@@ -2074,7 +2087,7 @@ macro_rules! def_machine_debug {
       for $machine $(<$($type_var),+>)*
     where
     $($(
-      $type_var : ::std::fmt::Debug,
+      $type_var : std::fmt::Debug,
       $($($type_var : $type_constraint),+)*
     ),+)*
     {
@@ -2086,7 +2099,7 @@ macro_rules! def_machine_debug {
 
     impl $(<$($type_var),+>)* Drop for $machine $(<$($type_var),+>)* where
     $($(
-      $type_var : ::std::fmt::Debug,
+      $type_var : std::fmt::Debug,
       $($($type_var : $type_constraint),+)*
     ),+)*
     {
@@ -2098,8 +2111,9 @@ macro_rules! def_machine_debug {
         let $self_reference = &mut *self;)*
         $(
         if _state_id != StateId::$terminal {
-          $crate::log::trace!("<<< current state ({:?}) != terminal state ({:?})",
-            _state_id, StateId::$terminal);
+          $crate::log::trace!("{}::drop failure: \
+            current state ({:?}) != terminal state ({:?})",
+              stringify!($machine), _state_id, StateId::$terminal);
           $($($terminate_failure)*)*
         } else {
           $($($terminate_success)*)*
@@ -2135,7 +2149,7 @@ macro_rules! def_machine_debug {
         extended_state : &mut ExtendedState$(<$($type_var),+>)*) -> State
       where
       $($(
-        $type_var : ::std::fmt::Debug,
+        $type_var : std::fmt::Debug,
         $($($type_var : $type_constraint),+)*
       ),+)*
       {
@@ -2284,7 +2298,7 @@ macro_rules! def_machine_nodefault_debug {
       for $machine $(<$($type_var),+>)*
     where
     $($(
-      $type_var : ::std::fmt::Debug,
+      $type_var : std::fmt::Debug,
       $($($type_var : $type_constraint),+)*
     ),+)*
     {
@@ -2296,7 +2310,7 @@ macro_rules! def_machine_nodefault_debug {
         $($(
         _v.push (format!(
           "{} = {}", stringify!($type_var),
-            unsafe { ::std::intrinsics::type_name::<$type_var>() }));
+            unsafe { std::intrinsics::type_name::<$type_var>() }));
         )+)*
         _v
       }
@@ -2409,7 +2423,7 @@ macro_rules! def_machine_nodefault_debug {
 
     impl $(<$($type_var),+>)* ExtendedState $(<$($type_var),+>)* where
     $($(
-      $type_var : ::std::fmt::Debug,
+      $type_var : std::fmt::Debug,
       $($($type_var : $type_constraint),+)*
     ),+)*
     {
