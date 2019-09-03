@@ -2022,6 +2022,14 @@ macro_rules! def_machine_debug {
         &self.extended_state
       }
 
+      #[allow(dead_code)]
+      #[inline]
+      pub fn extended_state_mut (&mut self)
+        -> &mut ExtendedState $(<$($type_var),+>)*
+      {
+        &mut self.extended_state
+      }
+
       $crate::def_machine_debug!{
         @impl_fn_handle_event
         machine $machine {
