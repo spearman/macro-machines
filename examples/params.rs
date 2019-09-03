@@ -51,8 +51,7 @@ fn main () {
   let mut m = M::initial();
   println!("m: {:?}", m);
 
-  let e = Event::from_id (EventId::A);
-  unwrap!(m.handle_event (e));
+  unwrap!(m.handle_event (EventId::A.into()));
   println!("m: {:?}", m);
 
   let e = EventParams::Foo { add: 5 }.into();

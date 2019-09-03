@@ -71,10 +71,8 @@ fn main () {
   use macro_machines::HandleEventException;
 
   let mut m = M::initial();
-  let e = Event::from_id (EventId::A);
-  m.handle_event (e).unwrap();
-  let e = Event::from_id (EventId::A);
-  assert_eq!(m.handle_event (e), Err (HandleEventException::WrongState));
+  m.handle_event (EventId::A.into()).unwrap();
+  assert_eq!(m.handle_event (EventId::A.into()), Err (HandleEventException::WrongState));
 }
 ```
 

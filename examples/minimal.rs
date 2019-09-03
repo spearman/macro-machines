@@ -49,11 +49,11 @@ fn main () {
   let mut m = M::initial();
   println!("m: {:?}", m);
 
-  let e = Event::from_id (EventId::A);
+  let e = Event::from (EventId::A);
   unwrap!(m.handle_event (e));
   println!("m: {:?}", m);
 
-  let e = Event::from_id (EventId::A);
+  let e = Event::from (EventId::A);
   assert_eq!(m.handle_event (e), Err (HandleEventException::WrongState));
 
   println!("{}: ...main", example_name);

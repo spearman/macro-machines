@@ -80,6 +80,9 @@
 //!
 //! ![](https://raw.githubusercontent.com/spearman/macro-machines/master/door.png)
 
+#![cfg_attr(test, feature(core_intrinsics))]
+#![cfg_attr(test, allow(dead_code))]
+
 extern crate marksman_escape;
 pub extern crate log;
 pub extern crate variant_count;
@@ -136,7 +139,7 @@ pub trait MachineDotfile {
 /// Describes an exceptional result when attempting to handle an event.
 ///
 /// Currently the only exception is the '`WrongState`' exception.
-#[derive(Debug,PartialEq)]
+#[derive(Debug, PartialEq)]
 pub enum HandleEventException {
   WrongState
 }
@@ -455,4 +458,180 @@ fn machine_dotfile <M : MachineDotfile>
 fn escape (s : String) -> String {
   use marksman_escape::Escape;
   String::from_utf8 (Escape::new (s.bytes()).collect()).unwrap()
+}
+
+#[cfg(test)]
+mod tests {
+  #[test]
+  fn test_initial() {
+    {
+      def_machine!{
+        Test () {
+          STATES [ state A () ]
+          EVENTS [ ]
+          initial_state: A
+        }
+      }
+      let test = Test::initial();
+      assert_eq!(test.state_id(), StateId::A);
+    } {
+      def_machine_debug!{
+        Test () {
+          STATES [ state A () ]
+          EVENTS [ ]
+          initial_state: A
+        }
+      }
+      let test = Test::initial();
+      assert_eq!(test.state_id(), StateId::A);
+    }
+  }
+  #[test]
+  fn test_new() {
+    {
+      def_machine!{
+        Test () {
+          STATES [ state A () ]
+          EVENTS [ ]
+          initial_state: A
+        }
+      }
+      let test = Test::new (ExtendedState::new());
+      assert_eq!(test.state_id(), StateId::A);
+    } {
+      def_machine_debug!{
+        Test () {
+          STATES [ state A () ]
+          EVENTS [ ]
+          initial_state: A
+        }
+      }
+      let test = Test::new (ExtendedState::new());
+      assert_eq!(test.state_id(), StateId::A);
+    } {
+      def_machine_nodefault!{
+        Test () {
+          STATES [ state A () ]
+          EVENTS [ ]
+          initial_state: A
+        }
+      }
+      let test = Test::new (ExtendedState::new().unwrap());
+      assert_eq!(test.state_id(), StateId::A);
+    } {
+      def_machine_nodefault_debug!{
+        Test () {
+          STATES [ state A () ]
+          EVENTS [ ]
+          initial_state: A
+        }
+      }
+      let test = Test::new (ExtendedState::new().unwrap());
+      assert_eq!(test.state_id(), StateId::A);
+    }
+  }
+  #[test]
+  fn test_event_internal() {
+    {
+      def_machine!{
+        Test () {
+          STATES [ state A () ]
+          EVENTS [ event E <A> () ]
+          initial_state: A
+        }
+      }
+      let mut test = Test::initial();
+      test.handle_event (EventId::E.into()).unwrap();
+    } {
+      def_machine_debug!{
+        Test () {
+          STATES [ state A () ]
+          EVENTS [ event E <A> () ]
+          initial_state: A
+        }
+      }
+      let mut test = Test::initial();
+      test.handle_event (EventId::E.into()).unwrap();
+    } {
+      def_machine_nodefault!{
+        Test () {
+          STATES [ state A () ]
+          EVENTS [ event E <A> () ]
+          initial_state: A
+        }
+      }
+      let mut test = Test::new (ExtendedState::new().unwrap());
+      test.handle_event (EventParams::E{}.into()).unwrap();
+    } {
+      def_machine_nodefault_debug!{
+        Test () {
+          STATES [ state A () ]
+          EVENTS [ event E <A> () ]
+          initial_state: A
+        }
+      }
+      let mut test = Test::new (ExtendedState::new().unwrap());
+      test.handle_event (EventParams::E{}.into()).unwrap();
+    }
+  }
+  #[test]
+  fn test_event_external() {
+    {
+      def_machine!{
+        Test () {
+          STATES [
+            state A ()
+            state B ()
+          ]
+          EVENTS [ event E <A> => <B> () ]
+          initial_state: A
+        }
+      }
+      let mut test = Test::initial();
+      test.handle_event (EventId::E.into()).unwrap();
+      assert_eq!(test.state_id(), StateId::B);
+    } {
+      def_machine_debug!{
+        Test () {
+          STATES [
+            state A ()
+            state B ()
+          ]
+          EVENTS [ event E <A> => <B> () ]
+          initial_state: A
+        }
+      }
+      let mut test = Test::initial();
+      test.handle_event (EventId::E.into()).unwrap();
+      assert_eq!(test.state_id(), StateId::B);
+    } {
+      def_machine_nodefault!{
+        Test () {
+          STATES [
+            state A ()
+            state B ()
+          ]
+          EVENTS [ event E <A> => <B> () ]
+          initial_state: A
+        }
+      }
+      let mut test = Test::new (ExtendedState::new().unwrap());
+      test.handle_event (EventParams::E{}.into()).unwrap();
+      assert_eq!(test.state_id(), StateId::B);
+    } {
+      def_machine_nodefault_debug!{
+        Test () {
+          STATES [
+            state A ()
+            state B ()
+          ]
+          EVENTS [ event E <A> => <B> () ]
+          initial_state: A
+        }
+      }
+      let mut test = Test::new (ExtendedState::new().unwrap());
+      test.handle_event (EventParams::E{}.into()).unwrap();
+      assert_eq!(test.state_id(), StateId::B);
+    }
+  }
 }

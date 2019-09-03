@@ -28,7 +28,7 @@ macro_rules! def_machine {
         $(event $event:ident <$source:tt> $(=> <$target:ident>)*
           ($($param_name:ident : $param_type:ty $(= $param_default:expr)*),*)
           $({ $($state_data:ident),* } => $action:block)*
-        )+
+        )*
       ]
       EXTENDED [
         $($ext_name:ident : $ext_type:ty $(= $ext_default:expr)*),*
@@ -61,7 +61,7 @@ macro_rules! def_machine {
           $(event $event <$source> $(=> <$target>)*
             ($($param_name : $param_type $(= $param_default)*),*)
             $({$($state_data),*} => $action)*
-          )+
+          )*
         ]
         EXTENDED [
           $($ext_name : $ext_type $(= $ext_default)*),*
@@ -212,32 +212,32 @@ macro_rules! def_machine {
         v
       }
       fn events() -> Vec <&'static str> {
-        let mut v = Vec::new();
+        let mut _v = Vec::new();
         $(
-        v.push (stringify!($event));
-        )+
-        v
+        _v.push (stringify!($event));
+        )*
+        _v
       }
       fn event_sources() -> Vec <&'static str> {
-        let mut v = Vec::new();
+        let mut _v = Vec::new();
         $(
-        v.push (stringify!($source));
-        )+
-        v
+        _v.push (stringify!($source));
+        )*
+        _v
       }
       fn event_targets() -> Vec <&'static str> {
-        let mut v = Vec::new();
+        let mut _v = Vec::new();
         $(
-        v.push (stringify!($($target)*));
-        )+
-        v
+        _v.push (stringify!($($target)*));
+        )*
+        _v
       }
       fn event_actions() -> Vec <&'static str> {
-        let mut v = Vec::new();
+        let mut _v = Vec::new();
         $(
-        v.push (stringify!($($action)*));
-        )+
-        v
+        _v.push (stringify!($($action)*));
+        )*
+        _v
       }
     } // end impl MachineDotfile
 
@@ -262,12 +262,11 @@ macro_rules! def_machine {
       }
     }
 
-    impl <'event> Event <'event> {
+    impl <'event> From <EventId> for Event <'event> {
       /// Construct an event with default parameters for the given ID
-      #[inline]
-      pub fn from_id (id : EventId) -> Self {
-        let params = id.clone().into();
-        Event { id, params }
+      fn from (id : EventId) -> Self {
+        let _params = id.clone().into();
+        Event { id, params: _params }
       }
     }
 
@@ -278,7 +277,7 @@ macro_rules! def_machine {
             $($param_name:
               $crate::def_machine!(@expr_default $($param_default)*)
             ),*
-          }),+
+          }),*
         }
       }
     }
@@ -310,7 +309,7 @@ macro_rules! def_machine {
         $(event $event:ident <$source:tt> $(=> <$target:ident>)*
           ($($param_name:ident : $param_type:ty $(= $param_default:expr)*),*)
           $({ $($state_data:ident),* } => $action:block)*
-        )+
+        )*
       ]
       initial_state: $initial:ident $({
         $(initial_action: $initial_action:block)*
@@ -336,7 +335,7 @@ macro_rules! def_machine {
           $(event $event <$source> $(=> <$target>)*
             ($($param_name : $param_type $(= $param_default)*),*)
             $({$($state_data),*} => $action)*
-          )+
+          )*
         ]
         EXTENDED [
           $($($ext_name : $ext_type $(= $ext_default)*),*)*
@@ -363,7 +362,7 @@ macro_rules! def_machine {
         $(event $event:ident <$source:tt> $(=> <$target:ident>)*
           ($($param_name:ident),*)
           $({ $($state_data:ident),* } => $action:block)*
-        )+
+        )*
       ]
       EXTENDED [
         $($ext_name:ident : $ext_type:ty $(= $ext_default:expr)*),*
@@ -400,7 +399,7 @@ macro_rules! def_machine {
                       @event_action_universal
                       event $event <$source> $(=> <$target>)* $($action)*
                     }
-                  })+
+                  })*
                   _ => unreachable!("unreachable phantom data variant")
                 }
               }
@@ -440,7 +439,7 @@ macro_rules! def_machine {
                       }
                       _ => unreachable!("current state should match event source")
                     }
-                  })+
+                  })*
                   _ => unreachable!("unreachable phantom data variant")
                 }
               }
@@ -472,7 +471,7 @@ macro_rules! def_machine {
                         @event_action_external
                         event $event <$source> $(=> <$target>)* $($action)*
                       }
-                    })+
+                    })*
                     _ => unreachable!("unreachable phantom data variant")
                   }
                 }
@@ -629,7 +628,7 @@ macro_rules! def_machine {
         $(event $event:ident <$source:tt> $(=> <$target:ident>)*
           ($($param_name:ident : $param_type:ty $(= $param_default:expr)*),*)
           $({ $($state_data:ident),* } => $action:block)*
-        )+
+        )*
       ]
       EXTENDED [
         $($ext_name:ident : $ext_type:ty $(= $ext_default:expr)*),*
@@ -693,13 +692,13 @@ macro_rules! def_machine {
 
     #[derive(Clone, Debug, Eq, PartialEq, $crate::variant_count::VariantCount)]
     pub enum EventId {
-      $($event),+
+      $($event),*
     }
 
     pub enum EventParams <'event> {
       $($event {
         $($param_name : $param_type),*
-      },)+
+      },)*
       _PhantomData (::std::marker::PhantomData <&'event ()>)
     }
 
@@ -710,7 +709,7 @@ macro_rules! def_machine {
     {
       pub fn report_sizes() where $($($type_var : 'static),+)* {
         let machine_name = stringify!($machine);
-        let machine_type = unsafe { std::intrinsics::type_name::<Self>() };
+        let machine_type = std::intrinsics::type_name::<Self>();
         println!("{}::report_sizes...", machine_name);
         println!("  size of {}: {}", machine_type,
           std::mem::size_of::<Self>());
@@ -770,7 +769,7 @@ macro_rules! def_machine {
             $(event $event <$source> $(=> <$target>)*
               ($($param_name),*)
               $({$($state_data),*} => $action)*
-            )+
+            )*
           ]
           EXTENDED [
             $($ext_name : $ext_type $(= $ext_default)*),*
@@ -917,7 +916,7 @@ macro_rules! def_machine {
           $(
           EventId::$event =>
             $crate::def_machine!(@event_transition <$source> $(=> <$target>)*)
-          ),+
+          ),*
         }
       }
     }
@@ -925,7 +924,7 @@ macro_rules! def_machine {
     impl <'event> EventParams <'event> {
       pub fn id (&self) -> EventId {
         match *self {
-          $(EventParams::$event {..} => EventId::$event,)+
+          $(EventParams::$event {..} => EventId::$event,)*
           _ => unreachable!("unreachable phantom data variant")
         }
       }
@@ -950,8 +949,8 @@ macro_rules! def_machine {
 
     impl <'event> From <EventParams <'event>> for Event <'event> {
       fn from (params : EventParams <'event>) -> Self {
-        let id = params.id();
-        Event { id, params }
+        let _id = params.id();
+        Event { id: _id, params }
       }
     }
 
@@ -982,7 +981,7 @@ macro_rules! def_machine_nodefault {
         $(event $event:ident <$source:tt> $(=> <$target:ident>)*
           ($($param_name:ident : $param_type:ty $(= $param_default:expr)*),*)
           $({ $($state_data:ident),* } => $action:block)*
-        )+
+        )*
       ]
       EXTENDED [
         $($ext_name:ident : $ext_type:ty $(= $ext_default:expr)*),*
@@ -1015,7 +1014,7 @@ macro_rules! def_machine_nodefault {
           $(event $event <$source> $(=> <$target>)*
             ($($param_name : $param_type $(= $param_default)*),*)
             $({$($state_data),*} => $action)*
-          )+
+          )*
         ]
         EXTENDED [
           $($ext_name : $ext_type $(= $ext_default)*),*
@@ -1127,32 +1126,32 @@ macro_rules! def_machine_nodefault {
         v
       }
       fn events() -> Vec <&'static str> {
-        let mut v = Vec::new();
+        let mut _v = Vec::new();
         $(
-        v.push (stringify!($event));
-        )+
-        v
+        _v.push (stringify!($event));
+        )*
+        _v
       }
       fn event_sources() -> Vec <&'static str> {
-        let mut v = Vec::new();
+        let mut _v = Vec::new();
         $(
-        v.push (stringify!($source));
-        )+
-        v
+        _v.push (stringify!($source));
+        )*
+        _v
       }
       fn event_targets() -> Vec <&'static str> {
-        let mut v = Vec::new();
+        let mut _v = Vec::new();
         $(
-        v.push (stringify!($($target)*));
-        )+
-        v
+        _v.push (stringify!($($target)*));
+        )*
+        _v
       }
       fn event_actions() -> Vec <&'static str> {
-        let mut v = Vec::new();
+        let mut _v = Vec::new();
         $(
-        v.push (stringify!($($action)*));
-        )+
-        v
+        _v.push (stringify!($($action)*));
+        )*
+        _v
       }
     } // end impl MachineDotfile
 
@@ -1209,7 +1208,7 @@ macro_rules! def_machine_nodefault {
         $(event $event:ident <$source:tt> $(=> <$target:ident>)*
           ($($param_name:ident : $param_type:ty $(= $param_default:expr)*),*)
           $({ $($state_data:ident),* } => $action:block)*
-        )+
+        )*
       ]
       initial_state: $initial:ident $({
         $(initial_action: $initial_action:block)*
@@ -1235,7 +1234,7 @@ macro_rules! def_machine_nodefault {
           $(event $event <$source> $(=> <$target>)*
             ($($param_name : $param_type $(= $param_default)*),*)
             $({$($state_data),*} => $action)*
-          )+
+          )*
         ]
         EXTENDED [
           $($($ext_name : $ext_type $(= $ext_default)*),*)*
@@ -1285,7 +1284,7 @@ macro_rules! def_machine_debug {
         $(event $event:ident <$source:tt> $(=> <$target:ident>)*
           ($($param_name:ident : $param_type:ty $(= $param_default:expr)*),*)
           $({ $($state_data:ident),* } => $action:block)*
-        )+
+        )*
       ]
       EXTENDED [
         $($ext_name:ident : $ext_type:ty $(= $ext_default:expr)*),*
@@ -1318,7 +1317,7 @@ macro_rules! def_machine_debug {
           $(event $event <$source> $(=> <$target>)*
             ($($param_name : $param_type $(= $param_default)*),*)
             $({$($state_data),*} => $action)*
-          )+
+          )*
         ]
         EXTENDED [
           $($ext_name : $ext_type $(= $ext_default)*),*
@@ -1471,32 +1470,32 @@ macro_rules! def_machine_debug {
         v
       }
       fn events() -> Vec <&'static str> {
-        let mut v = Vec::new();
+        let mut _v = Vec::new();
         $(
-        v.push (stringify!($event));
-        )+
-        v
+        _v.push (stringify!($event));
+        )*
+        _v
       }
       fn event_sources() -> Vec <&'static str> {
-        let mut v = Vec::new();
+        let mut _v = Vec::new();
         $(
-        v.push (stringify!($source));
-        )+
-        v
+        _v.push (stringify!($source));
+        )*
+        _v
       }
       fn event_targets() -> Vec <&'static str> {
-        let mut v = Vec::new();
+        let mut _v = Vec::new();
         $(
-        v.push (stringify!($($target)*));
-        )+
-        v
+        _v.push (stringify!($($target)*));
+        )*
+        _v
       }
       fn event_actions() -> Vec <&'static str> {
-        let mut v = Vec::new();
+        let mut _v = Vec::new();
         $(
-        v.push (stringify!($($action)*));
-        )+
-        v
+        _v.push (stringify!($($action)*));
+        )*
+        _v
       }
     } // end impl MachineDotfile
 
@@ -1522,12 +1521,11 @@ macro_rules! def_machine_debug {
       }
     }
 
-    impl <'event> Event <'event> {
+    impl <'event> From <EventId> for Event <'event> {
       /// Construct an event with default parameters for the given ID
-      #[inline]
-      pub fn from_id (id : EventId) -> Self {
-        let params = id.clone().into();
-        Event { id, params }
+      fn from (id : EventId) -> Self {
+        let _params = id.clone().into();
+        Event { id, params: _params }
       }
     }
 
@@ -1538,7 +1536,7 @@ macro_rules! def_machine_debug {
             $($param_name:
               $crate::def_machine_debug!(@expr_default $($param_default)*)
             ),*
-          }),+
+          }),*
         }
       }
     }
@@ -1570,7 +1568,7 @@ macro_rules! def_machine_debug {
         $(event $event:ident <$source:tt> $(=> <$target:ident>)*
           ($($param_name:ident : $param_type:ty $(= $param_default:expr)*),*)
           $({ $($state_data:ident),* } => $action:block)*
-        )+
+        )*
       ]
       initial_state: $initial:ident $({
         $(initial_action: $initial_action:block)*
@@ -1596,7 +1594,7 @@ macro_rules! def_machine_debug {
           $(event $event <$source> $(=> <$target>)*
             ($($param_name : $param_type $(= $param_default)*),*)
             $({$($state_data),*} => $action)*
-          )+
+          )*
         ]
         EXTENDED [
           $($($ext_name : $ext_type $(= $ext_default)*),*)*
@@ -1623,7 +1621,7 @@ macro_rules! def_machine_debug {
         $(event $event:ident <$source:tt> $(=> <$target:ident>)*
           ($($param_name:ident),*)
           $({ $($state_data:ident),* } => $action:block)*
-        )+
+        )*
       ]
       EXTENDED [
         $($ext_name:ident : $ext_type:ty $(= $ext_default:expr)*),*
@@ -1659,7 +1657,7 @@ macro_rules! def_machine_debug {
                       @event_action_universal
                       event $event <$source> $(=> <$target>)* $($action)*
                     }
-                  })+
+                  })*
                   _ => unreachable!("unreachable phantom data variant")
                 }
               }
@@ -1699,7 +1697,7 @@ macro_rules! def_machine_debug {
                       }
                       _ => unreachable!("current state should match event source")
                     }
-                  })+
+                  })*
                   _ => unreachable!("unreachable phantom data variant")
                 }
               }
@@ -1731,7 +1729,7 @@ macro_rules! def_machine_debug {
                         @event_action_external
                         event $event <$source> $(=> <$target>)* $($action)*
                       }
-                    })+
+                    })*
                     _ => unreachable!("unreachable phantom data variant")
                   }
                 }
@@ -1888,7 +1886,7 @@ macro_rules! def_machine_debug {
         $(event $event:ident <$source:tt> $(=> <$target:ident>)*
           ($($param_name:ident : $param_type:ty $(= $param_default:expr)*),*)
           $({ $($state_data:ident),* } => $action:block)*
-        )+
+        )*
       ]
       EXTENDED [
         $($ext_name:ident : $ext_type:ty $(= $ext_default:expr)*),*
@@ -1959,14 +1957,14 @@ macro_rules! def_machine_debug {
 
     #[derive(Clone, Debug, Eq, PartialEq, $crate::variant_count::VariantCount)]
     pub enum EventId {
-      $($event),+
+      $($event),*
     }
 
     #[derive(Debug)]
     pub enum EventParams <'event> {
       $($event {
         $($param_name : $param_type),*
-      },)+
+      },)*
       _PhantomData (::std::marker::PhantomData <&'event ()>)
     }
 
@@ -1978,7 +1976,7 @@ macro_rules! def_machine_debug {
     {
       pub fn report_sizes() where $($($type_var : 'static),+)* {
         let machine_name = stringify!($machine);
-        let machine_type = unsafe { std::intrinsics::type_name::<Self>() };
+        let machine_type = std::intrinsics::type_name::<Self>();
         println!("{} report sizes...", machine_name);
         println!("  size of {}: {}", machine_type, std::mem::size_of::<Self>());
         println!("...{} report sizes", machine_name);
@@ -2037,7 +2035,7 @@ macro_rules! def_machine_debug {
             $(event $event <$source> $(=> <$target>)*
               ($($param_name),*)
               $({$($state_data),*} => $action)*
-            )+
+            )*
           ]
           EXTENDED [
             $($ext_name : $ext_type $(= $ext_default)*),*
@@ -2188,7 +2186,7 @@ macro_rules! def_machine_debug {
           $(
           EventId::$event =>
             $crate::def_machine_debug!(@event_transition <$source> $(=> <$target>)*)
-          ),+
+          ),*
         }
       }
     }
@@ -2196,7 +2194,7 @@ macro_rules! def_machine_debug {
     impl <'event> EventParams <'event> {
       pub fn id (&self) -> EventId {
         match *self {
-          $(EventParams::$event {..} => EventId::$event,)+
+          $(EventParams::$event {..} => EventId::$event,)*
           _ => unreachable!("unreachable phantom data variant")
         }
       }
@@ -2221,8 +2219,8 @@ macro_rules! def_machine_debug {
 
     impl <'event> From <EventParams <'event>> for Event <'event> {
       fn from (params : EventParams <'event>) -> Self {
-        let id = params.id();
-        Event { id, params }
+        let _id = params.id();
+        Event { id: _id, params }
       }
     }
 
@@ -2253,7 +2251,7 @@ macro_rules! def_machine_nodefault_debug {
         $(event $event:ident <$source:tt> $(=> <$target:ident>)*
           ($($param_name:ident : $param_type:ty $(=> $param_default:expr)*),*)
           $({ $($state_data:ident),* } => $action:block)*
-        )+
+        )*
       ]
       EXTENDED [
         $($ext_name:ident : $ext_type:ty $(= $ext_default:expr)*),*
@@ -2286,7 +2284,7 @@ macro_rules! def_machine_nodefault_debug {
           $(event $event <$source> $(=> <$target>)*
             ($($param_name : $param_type $(=> $param_default)*),*)
             $({$($state_data),*} => $action)*
-          )+
+          )*
         ]
         EXTENDED [
           $($ext_name : $ext_type $(= $ext_default)*),*
@@ -2400,32 +2398,32 @@ macro_rules! def_machine_nodefault_debug {
       }
 
       fn events() -> Vec <&'static str> {
-        let mut v = Vec::new();
+        let mut _v = Vec::new();
         $(
-        v.push (stringify!($event));
-        )+
-        v
+        _v.push (stringify!($event));
+        )*
+        _v
       }
       fn event_sources() -> Vec <&'static str> {
-        let mut v = Vec::new();
+        let mut _v = Vec::new();
         $(
-        v.push (stringify!($source));
-        )+
-        v
+        _v.push (stringify!($source));
+        )*
+        _v
       }
       fn event_targets() -> Vec <&'static str> {
-        let mut v = Vec::new();
+        let mut _v = Vec::new();
         $(
-        v.push (stringify!($($target)*));
-        )+
-        v
+        _v.push (stringify!($($target)*));
+        )*
+        _v
       }
       fn event_actions() -> Vec <&'static str> {
-        let mut v = Vec::new();
+        let mut _v = Vec::new();
         $(
-        v.push (stringify!($($action)*));
-        )+
-        v
+        _v.push (stringify!($($action)*));
+        )*
+        _v
       }
     }
 
@@ -2484,7 +2482,7 @@ macro_rules! def_machine_nodefault_debug {
         $(event $event:ident <$source:tt> $(=> <$target:ident>)*
           ($($param_name:ident : $param_type:ty $(= $param_default:expr)*),*)
           $({ $($state_data:ident),* } => $action:block)*
-        )+
+        )*
       ]
       initial_state: $initial:ident $({
         $(initial_action: $initial_action:block)*
@@ -2510,7 +2508,7 @@ macro_rules! def_machine_nodefault_debug {
           $(event $event <$source> $(=> <$target>)*
             ($($param_name : $param_type $(= $param_default)*),*)
             $({$($state_data),*} => $action)*
-          )+
+          )*
         ]
         EXTENDED [
           $($($ext_name : $ext_type $(= $ext_default)*),*)*

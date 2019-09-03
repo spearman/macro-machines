@@ -52,12 +52,11 @@ fn main () {
   let mut m = M::initial();
   println!("m state: {:?}", m.state.id());
 
-  let e = Event::from_id (EventId::ToR);
-  unwrap!(m.handle_event (e));
+  unwrap!(m.handle_event (EventId::ToR.into()));
   println!("m state: {:?}", m.state.id());
 
-  let e = Event::from_id (EventId::ToS);
-  assert_eq!(m.handle_event (e), Err (HandleEventException::WrongState));
+  assert_eq!(m.handle_event (EventId::ToS.into()),
+    Err (HandleEventException::WrongState));
 
   println!("{}: ...main", example_name);
 }

@@ -67,12 +67,9 @@ fn main () {
   drop (f);
 
   let mut door = Door::initial();
-  let e = Event::from_id (EventId::Knock);
-  unwrap!(door.handle_event (e));
-  let e = Event::from_id (EventId::Open);
-  unwrap!(door.handle_event (e));
-  let e = Event::from_id (EventId::Close);
-  unwrap!(door.handle_event (e));
+  unwrap!(door.handle_event (EventId::Knock.into()));
+  unwrap!(door.handle_event (EventId::Open.into()));
+  unwrap!(door.handle_event (EventId::Close.into()));
 
   println!("{}: ...main", example_name);
 }
