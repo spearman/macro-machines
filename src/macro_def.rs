@@ -848,7 +848,7 @@ macro_rules! def_machine {
         let $self_reference = &mut *self;)*
         $(
         if _state_id != StateId::$terminal {
-          $crate::log::trace!("{}::drop failure: \
+          $crate::log::debug!("{}::drop failure: \
             current state ({:?}) != terminal state ({:?})",
               stringify!($machine), _state_id, StateId::$terminal);
           $($($terminate_failure)*)*
@@ -2117,7 +2117,7 @@ macro_rules! def_machine_debug {
         let $self_reference = &mut *self;)*
         $(
         if _state_id != StateId::$terminal {
-          $crate::log::trace!("{}::drop failure: \
+          $crate::log::debug!("{}::drop failure: \
             current state ({:?}) != terminal state ({:?})",
               stringify!($machine), _state_id, StateId::$terminal);
           $($($terminate_failure)*)*
