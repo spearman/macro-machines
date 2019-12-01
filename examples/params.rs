@@ -17,7 +17,7 @@ def_machine_debug!{
     ]
     EVENTS [
       event A   <S> => <T> ()
-      event Foo <T> (add : u64) { sum } => { *sum += *add }
+      event Foo <T> (add : u64) { sum } => { *sum += add }
     ]
     EXTENDED []
     initial_state: S
