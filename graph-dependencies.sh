@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 set -x
 
 cargo deps 2> /dev/null > dependencies.dot \
