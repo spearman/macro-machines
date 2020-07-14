@@ -556,6 +556,9 @@ macro_rules! def_machine {
   ( @event_action_internal
     event $event:ident <$source:ident> $($action:block)*
   ) => {
+    // NOTE: this warning appeared sometime around rust 1.44:
+    // 'warning: unnecessary braces around block return value'
+    #[allow(unused_braces)]
     $($action)*
   };
 
