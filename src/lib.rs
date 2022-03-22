@@ -80,14 +80,17 @@
 //!
 //! ![](https://raw.githubusercontent.com/spearman/macro-machines/master/door.png)
 
-#![cfg_attr(test, feature(core_intrinsics))]
-#![cfg_attr(test, allow(dead_code))]
+#![cfg_attr(test, allow(dead_code, unreachable_code))]
 
-extern crate marksman_escape;
 pub extern crate log;
-pub extern crate variant_count;
+extern crate marksman_escape;
+extern crate variant_count;
 
-#[macro_use] mod macro_def;
+pub use variant_count::VariantCount;
+
+mod macro_def;
+
+pub use self::macro_def::*;
 
 /// Methods for DOT file creation
 // TODO: if we had a proper Machine trait with associated state and event ID
@@ -460,8 +463,41 @@ fn escape (s : String) -> String {
   String::from_utf8 (Escape::new (s.bytes()).collect()).unwrap()
 }
 
+#[cfg(doc)]
+pub mod example {
+  //! Example generated state machine
+  use crate::def_machine_debug;
+  def_machine_debug! {
+    Door (open_count : u64) @ door {
+      STATES [
+        state Closed (knock_count : u64) {
+          exit { println!("final knock count: {}", knock_count); }
+        }
+        state Opened () {
+          entry { println!("open count: {}", open_count); }
+        }
+      ]
+      EVENTS [
+        event Knock <Closed> () { knock_count } => { *knock_count += 1; }
+        event Open  <Closed> => <Opened> ()  {} => { *open_count += 1; }
+        event Close <Opened> => <Closed> ()
+      ]
+      initial_state:  Closed {
+        initial_action: { println!("hello"); }
+      }
+      terminal_state: Closed {
+        terminate_success: { println!("goodbye") }
+        terminate_failure: {
+          panic!("door was left: {:?}", door.state())
+        }
+      }
+    }
+  }
+}
+
 #[cfg(test)]
 mod tests {
+  use super::*;
   #[test]
   fn test_initial() {
     {

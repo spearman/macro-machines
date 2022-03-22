@@ -1,12 +1,12 @@
 [package]
 name = "macro-machines"
-version = "0.10.1"
+version = "0.10.2"
 authors = ["Shane Pearman <spearman@github.com>"]
 license = "MPL-2.0"
 description = "State machine macros with logging and graphviz DOT file generation"
 repository = "https://github.com/spearman/macro-machines"
 readme = "README.md"
-edition = "2018"
+edition = "2021"
 
 [dependencies]
 log = "0.4.*"
@@ -14,5 +14,5 @@ marksman_escape = "0.1.*"
 variant_count = "1.*"
 
 [dev-dependencies]
-simplelog = "0.8.*"
+simplelog = "0.11.*"
 unwrap = "1.*"

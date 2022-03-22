@@ -1,13 +1,9 @@
-#![feature(const_fn)]
-#![feature(core_intrinsics)]
-
 extern crate simplelog;
 extern crate unwrap;
 use unwrap::unwrap;
 
 extern crate macro_machines;
 use macro_machines::def_machine_debug;
-
 
 def_machine_debug!{
   machine M {
@@ -38,7 +34,8 @@ fn main () {
       .set_target_level (simplelog::LevelFilter::Error)
       .set_thread_level (simplelog::LevelFilter::Off)
       .build(),
-    simplelog::TerminalMode::Stdout
+    simplelog::TerminalMode::Stdout,
+    simplelog::ColorChoice::Auto
   ).unwrap();
 
   M::report_sizes();

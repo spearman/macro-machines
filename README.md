@@ -40,15 +40,6 @@
 
 ## Usage
 
-The macros provided by this library expand to definitions using `const fn`s and
-some intrinsics to help generate dotfiles, so these features must be enabled in
-the crate root:
-
-```rust
-#![feature(const_fn)]
-#![feature(core_intrinsics)]
-```
-
 Define and use a minimal state machine:
 
 ```rust

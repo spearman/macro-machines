@@ -111,8 +111,7 @@ macro_rules! def_machine {
         let mut _v = Vec::new();
         $($(
         _v.push (format!(
-          "{} = {}", stringify!($type_var),
-            unsafe { std::intrinsics::type_name::<$type_var>() }));
+          "{} = {}", stringify!($type_var), std::any::type_name::<$type_var>()));
         )+)*
         _v
       }
@@ -556,9 +555,6 @@ macro_rules! def_machine {
   ( @event_action_internal
     event $event:ident <$source:ident> $($action:block)*
   ) => {
-    // NOTE: this warning appeared sometime around rust 1.44:
-    // 'warning: unnecessary braces around block return value'
-    #[allow(unused_braces)]
     $($action)*
   };
 
@@ -675,7 +671,7 @@ macro_rules! def_machine {
       params : EventParams <'event>
     }
 
-    #[derive(Clone, Debug, Eq, PartialEq,$crate::variant_count::VariantCount)]
+    #[derive(Clone, Debug, Eq, PartialEq, $crate::VariantCount)]
     pub enum StateId {
       $($state),+
     }
@@ -693,7 +689,7 @@ macro_rules! def_machine {
       Universal (StateId)
     }
 
-    #[derive(Clone, Debug, Eq, PartialEq, $crate::variant_count::VariantCount)]
+    #[derive(Clone, Debug, Eq, PartialEq, $crate::VariantCount)]
     pub enum EventId {
       $($event),*
     }
@@ -712,7 +708,7 @@ macro_rules! def_machine {
     {
       pub fn report_sizes() where $($($type_var : 'static),+)* {
         let machine_name = stringify!($machine);
-        let machine_type = std::intrinsics::type_name::<Self>();
+        let machine_type = std::any::type_name::<Self>();
         println!("{}::report_sizes...", machine_name);
         println!("  size of {}: {}", machine_type,
           std::mem::size_of::<Self>());
@@ -1047,8 +1043,7 @@ macro_rules! def_machine_nodefault {
         let mut _v = Vec::new();
         $($(
         _v.push (format!(
-          "{} = {}", stringify!($type_var),
-            unsafe { std::intrinsics::type_name::<$type_var>() }));
+        "{} = {}", stringify!($type_var), std::any::type_name::<$type_var>()));
         )+)*
         _v
       }
@@ -1372,8 +1367,7 @@ macro_rules! def_machine_debug {
         let mut _v = Vec::new();
         $($(
         _v.push (format!(
-          "{} = {}", stringify!($type_var),
-            unsafe { std::intrinsics::type_name::<$type_var>() }));
+          "{} = {}", stringify!($type_var), std::any::type_name::<$type_var>()));
         )+)*
         _v
       }
@@ -1939,7 +1933,7 @@ macro_rules! def_machine_debug {
       params : EventParams <'event>
     }
 
-    #[derive(Clone, Debug, Eq, PartialEq, $crate::variant_count::VariantCount)]
+    #[derive(Clone, Debug, Eq, PartialEq, $crate::VariantCount)]
     pub enum StateId {
       $($state),+
     }
@@ -1958,7 +1952,7 @@ macro_rules! def_machine_debug {
       Universal (StateId)
     }
 
-    #[derive(Clone, Debug, Eq, PartialEq, $crate::variant_count::VariantCount)]
+    #[derive(Clone, Debug, Eq, PartialEq, $crate::VariantCount)]
     pub enum EventId {
       $($event),*
     }
@@ -1979,7 +1973,7 @@ macro_rules! def_machine_debug {
     {
       pub fn report_sizes() where $($($type_var : 'static),+)* {
         let machine_name = stringify!($machine);
-        let machine_type = std::intrinsics::type_name::<Self>();
+        let machine_type = std::any::type_name::<Self>();
         println!("{} report sizes...", machine_name);
         println!("  size of {}: {}", machine_type, std::mem::size_of::<Self>());
         println!("...{} report sizes", machine_name);
@@ -2318,8 +2312,7 @@ macro_rules! def_machine_nodefault_debug {
         let mut _v = Vec::new();
         $($(
         _v.push (format!(
-          "{} = {}", stringify!($type_var),
-            unsafe { std::intrinsics::type_name::<$type_var>() }));
+          "{} = {}", stringify!($type_var), std::any::type_name::<$type_var>()));
         )+)*
         _v
       }

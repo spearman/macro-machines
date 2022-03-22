@@ -1,6 +1,3 @@
-#![feature(const_fn)]
-#![feature(core_intrinsics)]
-
 extern crate simplelog;
 extern crate unwrap;
 use unwrap::unwrap;
@@ -49,7 +46,8 @@ fn main () {
       .set_target_level (simplelog::LevelFilter::Error)
       .set_thread_level (simplelog::LevelFilter::Off)
       .build(),
-    simplelog::TerminalMode::Stdout
+    simplelog::TerminalMode::Stdout,
+    simplelog::ColorChoice::Auto
   ).unwrap();
 
   Door::report_sizes();
