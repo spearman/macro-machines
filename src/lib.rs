@@ -159,8 +159,10 @@ fn machine_dotfile <M : MachineDotfile>
   //
   // begin graph
   //
+  // overlap = scale for neato layouts
   s.push_str (
     "digraph {\n  \
+       overlap=scale\n \
        rankdir=LR\n  \
        node [shape=record, style=rounded, fontname=\"Sans Bold\"]\n  \
        edge [fontname=\"Sans\"]\n");
