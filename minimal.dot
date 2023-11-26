@@ -1,4 +1,5 @@
 digraph {
+  overlap=scale
   rankdir=LR
   node [shape=record, style=rounded, fontname="Sans Bold"]
   edge [fontname="Sans"]

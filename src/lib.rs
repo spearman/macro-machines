@@ -90,8 +90,6 @@ pub use variant_count::VariantCount;
 
 mod macro_def;
 
-pub use self::macro_def::*;
-
 /// Methods for DOT file creation
 // TODO: if we had a proper Machine trait with associated state and event ID
 // types, some of this would be redundant
@@ -162,7 +160,7 @@ fn machine_dotfile <M : MachineDotfile>
   // overlap = scale for neato layouts
   s.push_str (
     "digraph {\n  \
-       overlap=scale\n \
+       overlap=scale\n  \
        rankdir=LR\n  \
        node [shape=record, style=rounded, fontname=\"Sans Bold\"]\n  \
        edge [fontname=\"Sans\"]\n");

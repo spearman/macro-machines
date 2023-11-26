@@ -1,4 +1,4 @@
-extern crate simplelog;
+extern crate env_logger;
 extern crate unwrap;
 use unwrap::unwrap;
 
@@ -34,15 +34,10 @@ fn main () {
     .to_str().unwrap().to_string();
   println!("{}: main...", example_name);
 
-  simplelog::TermLogger::init (
-    simplelog::LevelFilter::Trace,
-    simplelog::ConfigBuilder::new()
-      .set_target_level (simplelog::LevelFilter::Error)
-      .set_thread_level (simplelog::LevelFilter::Off)
-      .build(),
-    simplelog::TerminalMode::Stdout,
-    simplelog::ColorChoice::Auto
-  ).unwrap();
+  env_logger::Builder::new()
+    .filter_level (log::LevelFilter::Trace)
+    .parse_default_env()
+    .init();
 
   G::<Nodebug>::report_sizes();
   G::<(Nodebug,Nodebug,Nodebug)>::report_sizes();
