@@ -33,11 +33,6 @@
 - Graphviz DOT file generation of state machine transition diagrams
 
 
-**Current limitations**
-
-- Only trace-level messages are currently logged
-
-
 ## Usage
 
 Define and use a minimal state machine:
