@@ -83,8 +83,9 @@ macro_rules! def_machine {
     ),+)*
     {
       pub fn initial() -> Self {
-        $crate::log::debug!("{}::initial: {}", stringify!($machine),
-          stringify!($initial));
+        $crate::log::debug!(
+          machine=stringify!($machine), state=stringify!($initial);
+          "initialize state machine");
         let mut extended_state = ExtendedState::initial();
         let state = StateId::$initial.to_state (&mut extended_state);
         let mut initial = Self { state, extended_state };
@@ -375,16 +376,15 @@ macro_rules! def_machine {
     pub fn handle_event (&mut self, mut _event : Event)
       -> Result <(), $crate::HandleEventException>
     {
-      $crate::log::debug!("{}::handle_event: {:?}", stringify!($machine),
-        _event.id);
       // if only one kind of transition exists the following match expression
       // will detect the other branch as "unreachable_code"
       #[allow(unreachable_code)]
       match _event.transition() {
         Transition::Universal (target_id) => {
-          $crate::log::debug!("{}::handle_event: <<< Ok: \
-            Universal ({:?} => {:?})",
-            stringify!($machine), self.state.id, target_id);
+          $crate::log::debug!(
+            machine=stringify!($machine), state:?=self.state.id,
+            event:?=_event.id, transition="Universal", target:?=target_id;
+            "handle event");
           self.state_exit();
           { // event action
             // bring extended state variables into scope
@@ -412,8 +412,10 @@ macro_rules! def_machine {
         }
         Transition::Internal (source_id) => {
           if self.state.id == source_id {
-            $crate::log::debug!("{}::handle_event: <<< Ok: Internal ({:?})",
-              stringify!($machine), source_id);
+            $crate::log::debug!(
+              machine=stringify!($machine), state:?=self.state.id,
+              event:?=_event.id, transition="Internal", source_state:?=source_id;
+              "handle event");
             // bring extended state variables into scope
             #[allow(unused_variables)]
             match &mut self.extended_state {
@@ -446,17 +448,22 @@ macro_rules! def_machine {
             }
             Ok (())
           } else {
-            $crate::log::warn!("{}::handle_event: <<< Err: \
-              internal transition current state ({:?}) != state ({:?})",
-                stringify!($machine), self.state.id, source_id);
-            Err ($crate::HandleEventException::WrongState)
+            let exception = $crate::HandleEventException::WrongState;
+            $crate::log::warn!(
+              machine=stringify!($machine), state:?=self.state.id,
+              event:?=_event.id, transition="Internal", source:?=source_id,
+              exception:?;
+              "handle event exception");
+            Err (exception)
           }
         }
         Transition::External (source_id, target_id) => {
           if self.state.id == source_id {
-            $crate::log::debug!("{}::handle_event: <<< Ok: \
-              External ({:?} => {:?})",
-              stringify!($machine), source_id, target_id);
+            $crate::log::debug!(
+              machine=stringify!($machine), state:?=self.state.id,
+              event:?=_event.id, transition="External", source:?=source_id,
+              target:?=target_id;
+              "handle event");
             self.state_exit();
             { // event action
               // bring extended state variables into scope
@@ -482,10 +489,13 @@ macro_rules! def_machine {
             self.state_entry();
             Ok (())
           } else {
-            $crate::log::warn!("{}::handle_event: <<< Err: \
-              external transition current state ({:?}) != source state ({:?})",
-                stringify!($machine), self.state.id, source_id);
-            Err ($crate::HandleEventException::WrongState)
+            let exception = $crate::HandleEventException::WrongState;
+            $crate::log::warn!(
+              machine=stringify!($machine), state:?=self.state.id,
+              event:?=_event.id, transition="External", source:?=source_id,
+              target:?=target_id, exception:?;
+              "handle event exception");
+            Err (exception)
           }
         }
       } // end match transition
@@ -841,18 +851,21 @@ macro_rules! def_machine {
     ),+)*
     {
       fn drop (&mut self) {
-        $crate::log::debug!("{}::drop", stringify!($machine));
         self.state_exit();
         let _state_id = self.state.id.clone();
         $(#[allow(unused_variables)]
         let $self_reference = &mut *self;)*
         $(
         if _state_id != StateId::$terminal {
-          $crate::log::warn!("{}::drop failure: \
-            current state ({:?}) != terminal state ({:?})",
-              stringify!($machine), _state_id, StateId::$terminal);
+          $crate::log::warn!(
+            machine=stringify!($machine), state:?=_state_id,
+            terminal:?=StateId::$terminal;
+            "drop failure: not in terminal state");
           $($($terminate_failure)*)*
         } else {
+          $crate::log::debug!(
+            machine=stringify!($machine), state:?=_state_id;
+            "drop success");
           $($($terminate_success)*)*
         }
         )*
@@ -1339,8 +1352,9 @@ macro_rules! def_machine_debug {
     ),+)*
     {
       pub fn initial() -> Self {
-        $crate::log::debug!("{}::initial: {}", stringify!($machine),
-          stringify!($initial));
+        $crate::log::debug!(
+          machine=stringify!($machine), state=stringify!($initial);
+          "initialize state machine");
         let mut extended_state = ExtendedState::initial();
         let state = StateId::$initial.to_state (&mut extended_state);
         let mut initial = Self { state, extended_state };
@@ -1633,16 +1647,15 @@ macro_rules! def_machine_debug {
     pub fn handle_event (&mut self, mut _event : Event)
       -> Result <(), $crate::HandleEventException>
     {
-      $crate::log::debug!("{}::handle_event: {:?}", stringify!($machine),
-        _event.id);
       // if only one kind of transition exists the following match expression
       // will detect the other branch as "unreachable_code"
       #[allow(unreachable_code)]
       match _event.transition() {
         Transition::Universal (target_id) => {
-          $crate::log::debug!("{}::handle_event: <<< Ok: \
-            Universal ({:?} => {:?})",
-            stringify!($machine), self.state.id, target_id);
+          $crate::log::debug!(
+            machine=stringify!($machine), state:?=self.state.id,
+            event:?=_event.id, transition="Universal", target:?=target_id;
+            "handle event");
           self.state_exit();
           { // event action
             // bring extended state variables into scope
@@ -1670,8 +1683,10 @@ macro_rules! def_machine_debug {
         }
         Transition::Internal (source_id) => {
           if self.state.id == source_id {
-            $crate::log::debug!("{}::handle_event: <<< Ok: Internal ({:?})",
-              stringify!($machine), source_id);
+            $crate::log::debug!(
+              machine=stringify!($machine), state:?=self.state.id,
+              event:?=_event.id, transition="Internal", source:?=source_id;
+              "handle event");
             // bring extended state variables into scope
             #[allow(unused_variables)]
             match &mut self.extended_state {
@@ -1704,17 +1719,22 @@ macro_rules! def_machine_debug {
             }
             Ok (())
           } else {
-            $crate::log::warn!("{}::handle_event: <<< Err: \
-              internal transition current state ({:?}) != state ({:?})",
-                stringify!($machine), self.state.id, source_id);
-            Err ($crate::HandleEventException::WrongState)
+            let exception = $crate::HandleEventException::WrongState;
+            $crate::log::warn!(
+              machine=stringify!($machine), state:?=self.state.id,
+              event:?=_event.id, transition="Internal", source:?=source_id,
+              exception:?;
+              "handle event exception");
+            Err (exception)
           }
         }
         Transition::External (source_id, target_id) => {
           if self.state.id == source_id {
-            $crate::log::debug!("{}::handle_event: <<< Ok: \
-              External ({:?} => {:?})",
-              stringify!($machine), source_id, target_id);
+            $crate::log::debug!(
+              machine=stringify!($machine), state:?=self.state.id,
+              event:?=_event.id, transition="External", source:?=source_id,
+              target:?=target_id;
+              "handle event");
             self.state_exit();
             { // event action
               // bring extended state variables into scope
@@ -1740,9 +1760,12 @@ macro_rules! def_machine_debug {
             self.state_entry();
             Ok (())
           } else {
-            $crate::log::warn!("{}::handle_event: <<< Err: \
-              external transition current state ({:?}) != source state ({:?})",
-                stringify!($machine), self.state.id, source_id);
+            let exception = $crate::HandleEventException::WrongState;
+            $crate::log::warn!(
+              machine=stringify!($machine), state:?=self.state.id,
+              event:?=_event.id, transition="External", source:?=source_id,
+              target:?=target_id, exception:?;
+              "handle event exception");
             Err ($crate::HandleEventException::WrongState)
           }
         }
@@ -2110,18 +2133,21 @@ macro_rules! def_machine_debug {
     ),+)*
     {
       fn drop (&mut self) {
-        $crate::log::debug!("{}::drop", stringify!($machine));
         self.state_exit();
         let _state_id = self.state.id.clone();
         $(#[allow(unused_variables)]
         let $self_reference = &mut *self;)*
         $(
         if _state_id != StateId::$terminal {
-          $crate::log::warn!("{}::drop failure: \
-            current state ({:?}) != terminal state ({:?})",
-              stringify!($machine), _state_id, StateId::$terminal);
+          $crate::log::warn!(
+            machine=stringify!($machine), state:?=_state_id,
+            terminal:?=StateId::$terminal;
+            "drop failure: not in terminal state");
           $($($terminate_failure)*)*
         } else {
+          $crate::log::debug!(
+            machine=stringify!($machine), state:?=_state_id;
+            "drop success");
           $($($terminate_success)*)*
         }
         )*

@@ -1,8 +1,4 @@
-extern crate env_logger;
-extern crate unwrap;
-use unwrap::unwrap;
-
-extern crate macro_machines;
+use env_logger;
 use macro_machines::def_machine;
 
 def_machine! {
@@ -40,7 +36,7 @@ fn main () {
 
   let example_name = std::env::current_exe().unwrap().file_name().unwrap()
     .to_str().unwrap().to_string();
-  println!("{}: main...", example_name);
+  println!("{example_name}: main...");
 
   env_logger::Builder::new()
     .filter_level (log::LevelFilter::Trace)
@@ -49,20 +45,20 @@ fn main () {
 
   Door::report_sizes();
 
-  let dotfile_name = format!("{}.dot", example_name);
-  let mut f = unwrap!(std::fs::File::create (dotfile_name));
-  unwrap!(f.write_all (Door::dotfile_hide_actions().as_bytes()));
+  let dotfile_name = format!("{example_name}.dot");
+  let mut f = std::fs::File::create (dotfile_name).unwrap();
+  f.write_all (Door::dotfile_hide_actions().as_bytes()).unwrap();
   drop (f);
 
-  let dotfile_name = format!("{}-show-defaults.dot", example_name);
-  let mut f = unwrap!(std::fs::File::create (dotfile_name));
-  unwrap!(f.write_all (Door::dotfile_show_defaults().as_bytes()));
+  let dotfile_name = format!("{example_name}-show-defaults.dot");
+  let mut f = std::fs::File::create (dotfile_name).unwrap();
+  f.write_all (Door::dotfile_show_defaults().as_bytes()).unwrap();
   drop (f);
 
   let mut door = Door::initial();
-  unwrap!(door.handle_event (EventId::Knock.into()));
-  unwrap!(door.handle_event (EventId::Open.into()));
-  unwrap!(door.handle_event (EventId::Close.into()));
+  door.handle_event (EventId::Knock.into()).unwrap();
+  door.handle_event (EventId::Open.into()).unwrap();
+  door.handle_event (EventId::Close.into()).unwrap();
 
-  println!("{}: ...main", example_name);
+  println!("{example_name}: ...main");
 }

@@ -1,18 +1,14 @@
-extern crate env_logger;
-extern crate unwrap;
-use unwrap::unwrap;
-
-extern crate macro_machines;
+use env_logger;
 use macro_machines::def_machine_debug;
 
 def_machine_debug! {
   Door (open_count : u64) @ door {
     STATES [
       state Closed (knock_count : u64) {
-        exit { println!("final knock count: {}", knock_count); }
+        exit { println!("final knock count: {knock_count}"); }
       }
       state Opened () {
-        entry { println!("open count: {}", open_count); }
+        entry { println!("open count: {open_count}"); }
       }
     ]
     EVENTS [
@@ -38,7 +34,7 @@ fn main () {
 
   let example_name = std::env::current_exe().unwrap().file_name().unwrap()
     .to_str().unwrap().to_string();
-  println!("{}: main...", example_name);
+  println!("{example_name}: main...");
 
   env_logger::Builder::new()
     .filter_level (log::LevelFilter::Trace)
@@ -47,27 +43,33 @@ fn main () {
 
   Door::report_sizes();
 
-  let dotfile_name = format!("{}.dot", example_name);
-  let mut f = unwrap!(std::fs::File::create (dotfile_name));
-  unwrap!(f.write_all (Door::dotfile().as_bytes()));
+  let dotfile_name = format!("{example_name}.dot");
+  let mut f = std::fs::File::create (dotfile_name).unwrap();
+  f.write_all (Door::dotfile().as_bytes()).unwrap();
   drop (f);
 
-  let dotfile_name = format!("{}-show-defaults.dot", example_name);
-  let mut f = unwrap!(std::fs::File::create (dotfile_name));
-  unwrap!(f.write_all (Door::dotfile_show_defaults().as_bytes()));
+  let dotfile_name = format!("{example_name}-show-defaults.dot");
+  let mut f = std::fs::File::create (dotfile_name).unwrap();
+  f.write_all (Door::dotfile_show_defaults().as_bytes()).unwrap();
   drop (f);
 
   let mut door = Door::initial();
-  println!("door: {:?}", door);
+  println!("door: {door:?}");
 
-  unwrap!(door.handle_event (EventId::Knock.into()));
-  println!("door: {:?}", door);
+  door.handle_event (EventId::Knock.into()).unwrap();
+  println!("door: {door:?}");
 
-  unwrap!(door.handle_event (EventId::Open.into()));
-  println!("door: {:?}", door);
+  door.handle_event (EventId::Open.into()).unwrap();
+  println!("door: {door:?}");
 
-  unwrap!(door.handle_event (EventId::Close.into()));
-  println!("door: {:?}", door);
+  door.handle_event (EventId::Open.into()).unwrap_err();
+  println!("door: {door:?}");
 
-  println!("{}: ...main", example_name);
+  door.handle_event (EventId::Knock.into()).unwrap_err();
+  println!("door: {door:?}");
+
+  door.handle_event (EventId::Close.into()).unwrap();
+  println!("door: {door:?}");
+
+  println!("{example_name}: ...main");
 }
