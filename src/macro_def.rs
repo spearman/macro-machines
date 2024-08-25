@@ -860,12 +860,12 @@ macro_rules! def_machine {
           $crate::log::warn!(
             machine=stringify!($machine), state:?=_state_id,
             terminal:?=StateId::$terminal;
-            "drop failure: not in terminal state");
+            "terminate failure: not in terminal state");
           $($($terminate_failure)*)*
         } else {
           $crate::log::debug!(
             machine=stringify!($machine), state:?=_state_id;
-            "drop success");
+            "terminate success");
           $($($terminate_success)*)*
         }
         )*
