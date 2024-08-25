@@ -384,7 +384,7 @@ macro_rules! def_machine {
           $crate::log::debug!(
             machine=stringify!($machine), state:?=self.state.id,
             event:?=_event.id, transition="Universal", target:?=target_id;
-            "handle event");
+            "handle state machine event");
           self.state_exit();
           { // event action
             // bring extended state variables into scope
@@ -415,7 +415,7 @@ macro_rules! def_machine {
             $crate::log::debug!(
               machine=stringify!($machine), state:?=self.state.id,
               event:?=_event.id, transition="Internal", source_state:?=source_id;
-              "handle event");
+              "handle state machine event");
             // bring extended state variables into scope
             #[allow(unused_variables)]
             match &mut self.extended_state {
@@ -453,7 +453,7 @@ macro_rules! def_machine {
               machine=stringify!($machine), state:?=self.state.id,
               event:?=_event.id, transition="Internal", source:?=source_id,
               exception:?;
-              "handle event exception");
+              "handle state machine event exception");
             Err (exception)
           }
         }
@@ -463,7 +463,7 @@ macro_rules! def_machine {
               machine=stringify!($machine), state:?=self.state.id,
               event:?=_event.id, transition="External", source:?=source_id,
               target:?=target_id;
-              "handle event");
+              "handle state machine event");
             self.state_exit();
             { // event action
               // bring extended state variables into scope
@@ -494,7 +494,7 @@ macro_rules! def_machine {
               machine=stringify!($machine), state:?=self.state.id,
               event:?=_event.id, transition="External", source:?=source_id,
               target:?=target_id, exception:?;
-              "handle event exception");
+              "handle state machine event exception");
             Err (exception)
           }
         }
@@ -860,12 +860,12 @@ macro_rules! def_machine {
           $crate::log::warn!(
             machine=stringify!($machine), state:?=_state_id,
             terminal:?=StateId::$terminal;
-            "terminate failure: not in terminal state");
+            "terminate state machine failure: not in terminal state");
           $($($terminate_failure)*)*
         } else {
           $crate::log::debug!(
             machine=stringify!($machine), state:?=_state_id;
-            "terminate success");
+            "terminate state machine success");
           $($($terminate_success)*)*
         }
         )*
@@ -1655,7 +1655,7 @@ macro_rules! def_machine_debug {
           $crate::log::debug!(
             machine=stringify!($machine), state:?=self.state.id,
             event:?=_event.id, transition="Universal", target:?=target_id;
-            "handle event");
+            "handle state machine event");
           self.state_exit();
           { // event action
             // bring extended state variables into scope
@@ -1686,7 +1686,7 @@ macro_rules! def_machine_debug {
             $crate::log::debug!(
               machine=stringify!($machine), state:?=self.state.id,
               event:?=_event.id, transition="Internal", source:?=source_id;
-              "handle event");
+              "handle state machine event");
             // bring extended state variables into scope
             #[allow(unused_variables)]
             match &mut self.extended_state {
@@ -1724,7 +1724,7 @@ macro_rules! def_machine_debug {
               machine=stringify!($machine), state:?=self.state.id,
               event:?=_event.id, transition="Internal", source:?=source_id,
               exception:?;
-              "handle event exception");
+              "handle state machine event exception");
             Err (exception)
           }
         }
@@ -1734,7 +1734,7 @@ macro_rules! def_machine_debug {
               machine=stringify!($machine), state:?=self.state.id,
               event:?=_event.id, transition="External", source:?=source_id,
               target:?=target_id;
-              "handle event");
+              "handle state machine event");
             self.state_exit();
             { // event action
               // bring extended state variables into scope
@@ -1765,7 +1765,7 @@ macro_rules! def_machine_debug {
               machine=stringify!($machine), state:?=self.state.id,
               event:?=_event.id, transition="External", source:?=source_id,
               target:?=target_id, exception:?;
-              "handle event exception");
+              "handle state machine event exception");
             Err ($crate::HandleEventException::WrongState)
           }
         }
@@ -2142,12 +2142,12 @@ macro_rules! def_machine_debug {
           $crate::log::warn!(
             machine=stringify!($machine), state:?=_state_id,
             terminal:?=StateId::$terminal;
-            "drop failure: not in terminal state");
+            "terminate state machine failure: not in terminal state");
           $($($terminate_failure)*)*
         } else {
           $crate::log::debug!(
             machine=stringify!($machine), state:?=_state_id;
-            "drop success");
+            "terminate state machine success");
           $($($terminate_success)*)*
         }
         )*
