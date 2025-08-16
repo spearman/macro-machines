@@ -174,14 +174,14 @@ fn machine_dotfile <M : MachineDotfile>
     let mut s = String::new();
     s.push_str (M::name());
     if !M::type_vars().is_empty() {
-      s.push_str ("<");
+      s.push ('<');
       let type_vars = M::type_vars();
       for string in type_vars {
         s.push_str (string.as_str());
-        s.push_str (",");
+        s.push (',');
       }
       assert_eq!(s.pop(), Some (','));
-      s.push_str (">");
+      s.push ('>');
     }
     s
   };
@@ -206,21 +206,18 @@ fn machine_dotfile <M : MachineDotfile>
     let mut extended_string = String::new();
     let separator = ",<BR ALIGN=\"LEFT\"/>\n";
 
-    let longest_fieldname = extended_state_names.iter().fold (
-      0, |longest, ref fieldname| std::cmp::max (longest, fieldname.len())
-    );
+    let longest_fieldname = extended_state_names.iter()
+      .fold (0, |longest, fieldname| std::cmp::max (longest, fieldname.len()));
 
-    let longest_typename = extended_state_types.iter().fold (
-      0, |longest, ref typename| std::cmp::max (longest, typename.len())
-    );
+    let longest_typename = extended_state_types.iter()
+      .fold (0, |longest, typename| std::cmp::max (longest, typename.len()));
 
     for (i,f) in extended_state_names.iter().enumerate() {
-      let spacer1 : String = std::iter::repeat (' ')
-        .take (longest_fieldname - f.len())
-        .collect();
-      let spacer2 : String = std::iter::repeat (' ')
-        .take (longest_typename - extended_state_types[i].len())
-        .collect();
+      let spacer1 : String =
+        std::iter::repeat_n (' ', longest_fieldname - f.len()).collect();
+      let spacer2 : String =
+        std::iter::repeat_n (' ', longest_typename - extended_state_types[i].len())
+          .collect();
 
       if !hide_defaults && !extended_state_defaults[i].is_empty() {
         extended_string.push_str (escape (format!(
@@ -232,18 +229,18 @@ fn machine_dotfile <M : MachineDotfile>
           "{}{} : {}", f, spacer1, extended_state_types[i]
         )).as_str());
       }
-      extended_string.push_str (format!("{}", separator).as_str());
+      extended_string.push_str (separator.to_string().as_str());
     }
 
     let len = extended_string.len();
     extended_string.truncate (len - separator.len());
-    s.push_str (format!("{}", extended_string).as_str());
+    s.push_str (extended_string.to_string().as_str());
   } // end extended state
 
   s.push_str ("<BR ALIGN=\"LEFT\"/>");
   let self_reference = M::self_reference();
   if !self_reference.is_empty() && mono_font {
-    s.push_str (format!("@ {}<BR ALIGN=\"CENTER\"/>", self_reference).as_str());
+    s.push_str (format!("@ {self_reference}<BR ALIGN=\"CENTER\"/>").as_str());
   }
   if !extended_state_names.is_empty() {
     s.push_str ("\n      ");
@@ -301,7 +298,7 @@ fn machine_dotfile <M : MachineDotfile>
     let state_data_defaults = &state_data_defaults[i];
     debug_assert_eq!(state_data_names.len(), state_data_types.len());
     debug_assert_eq!(state_data_types.len(), state_data_defaults.len());
-    s.push_str (format!("    {} [label=<<B>{}</B>", state, state).as_str());
+    s.push_str (format!("    {state} [label=<<B>{state}</B>").as_str());
     // NOTE: within the mono font block leading whitespace in the source
     // is counted as part of the layout so we don't indent these lines
     if !state_data_names.is_empty() {
@@ -311,19 +308,16 @@ fn machine_dotfile <M : MachineDotfile>
       }
       let mut data_string = String::new();
       let separator = ",<BR ALIGN=\"LEFT\"/>\n";
-      let longest_fieldname = state_data_names.iter().fold (
-        0, |longest, ref fieldname| std::cmp::max (longest, fieldname.len())
-      );
-      let longest_typename = state_data_types.iter().fold (
-        0, |longest, ref typename| std::cmp::max (longest, typename.len())
-      );
+      let longest_fieldname = state_data_names.iter()
+        .fold (0, |longest, fieldname| std::cmp::max (longest, fieldname.len()));
+      let longest_typename = state_data_types.iter()
+        .fold (0, |longest, typename| std::cmp::max (longest, typename.len()));
       for (i,f) in state_data_names.iter().enumerate() {
-        let spacer1 : String = std::iter::repeat (' ')
-          .take(longest_fieldname - f.len())
-          .collect();
-        let spacer2 : String = std::iter::repeat (' ')
-          .take(longest_typename - state_data_types[i].len())
-          .collect();
+        let spacer1 : String =
+          std::iter::repeat_n (' ', longest_fieldname - f.len()).collect();
+        let spacer2 : String =
+          std::iter::repeat_n (' ', longest_typename - state_data_types[i].len())
+            .collect();
         if !hide_defaults && !state_data_defaults[i].is_empty() {
           data_string.push_str (escape (format!(
             "{}{} : {}{} = {}",
@@ -334,11 +328,11 @@ fn machine_dotfile <M : MachineDotfile>
             "{}{} : {}", f, spacer1, state_data_types[i]
           )).as_str());
         }
-        data_string.push_str (format!("{}", separator).as_str());
+        data_string.push_str (separator.to_string().as_str());
       }
       let len = data_string.len();
       data_string.truncate (len - separator.len());
-      s.push_str (format!("{}", data_string).as_str());
+      s.push_str (data_string.to_string().as_str());
     }
 
     /*
@@ -384,8 +378,7 @@ fn machine_dotfile <M : MachineDotfile>
       universal = true;
     }
     s.push_str (format!(
-      "    \"{}\" -> \"{}\" [label=<<FONT FACE=\"Sans Italic\">{}</FONT>",
-      source, target, event
+      "    \"{source}\" -> \"{target}\" [label=<<FONT FACE=\"Sans Italic\">{event}</FONT>"
     ).as_str());
 
     let mut mono_font = false;
@@ -417,7 +410,7 @@ fn machine_dotfile <M : MachineDotfile>
           };
           // TODO: different formatting if params or guards were present
           //action = "  ".to_string() + action.as_str();
-          s.push_str (format!("{}", escape (action_string)).as_str());
+          s.push_str (escape (action_string).to_string().as_str());
         }
       }
     }
@@ -431,7 +424,7 @@ fn machine_dotfile <M : MachineDotfile>
   if universal {
     for state in M::states() {
       s.push_str (format!(
-        "    {} -> \"*\" [style=dashed, color=gray]", state).as_str());
+        "    {state} -> \"*\" [style=dashed, color=gray]").as_str());
     }
   }
 
@@ -443,7 +436,7 @@ fn machine_dotfile <M : MachineDotfile>
       "    TERMINAL [label=\"\", shape=doublecircle, width=0.2,\
      \n      style=filled, fillcolor=black]\n");
     s.push_str (format!(
-      "    {} -> TERMINAL\n", state_terminal).as_str());
+      "    {state_terminal} -> TERMINAL\n").as_str());
   }
   // end transitions
 

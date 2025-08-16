@@ -3,3 +3,4 @@
 Cargo.lock
 *.dot
 *.png
+rust-analyzer.log

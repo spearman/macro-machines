@@ -4,5 +4,6 @@ mkShell {
     gdb # required for rust-gdb
     rustup
     rust-analyzer
+    yamllint
   ];
 }

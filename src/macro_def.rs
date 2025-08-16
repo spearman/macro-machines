@@ -955,6 +955,7 @@ macro_rules! def_machine {
       }
 
       #[inline]
+      #[allow(mismatched_lifetime_syntaxes)]
       pub fn params (&self) -> &EventParams {
         &self.params
       }
@@ -2238,6 +2239,7 @@ macro_rules! def_machine_debug {
       }
 
       #[inline]
+      #[allow(mismatched_lifetime_syntaxes)]
       pub fn params (&self) -> &EventParams {
         &self.params
       }
