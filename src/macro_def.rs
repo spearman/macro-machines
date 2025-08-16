@@ -1183,13 +1183,7 @@ macro_rules! def_machine_nodefault {
             if let Some ($ext_name) = $ext_name {
               $ext_name
             } else {
-              if let Some (default) =
-                $crate::def_machine!(@expr_option $($ext_default)*)
-              {
-                default
-              } else {
-                return None
-              }
+              $crate::def_machine!(@expr_option $($ext_default)*)?
             }
           }),*
         })
