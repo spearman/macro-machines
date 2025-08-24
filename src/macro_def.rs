@@ -898,6 +898,7 @@ macro_rules! def_machine {
 
     impl EventId {
       pub fn transition (&self) -> Transition {
+        #[allow(clippy::uninhabited_references)]
         match *self {
           $(
           EventId::$event =>
@@ -923,12 +924,13 @@ macro_rules! def_machine {
       }
 
       #[inline]
+      #[allow(clippy::uninhabited_references)]
       pub fn id (&self) -> &EventId {
         &self.id
       }
 
       #[inline]
-      #[allow(mismatched_lifetime_syntaxes)]
+      #[expect(mismatched_lifetime_syntaxes)]
       pub fn params (&self) -> &EventParams {
         &self.params
       }
@@ -2137,6 +2139,7 @@ macro_rules! def_machine_debug {
 
     impl EventId {
       pub fn transition (&self) -> Transition {
+        #[allow(clippy::uninhabited_references)]
         match *self {
           $(
           EventId::$event =>
@@ -2162,12 +2165,13 @@ macro_rules! def_machine_debug {
       }
 
       #[inline]
+      #[allow(clippy::uninhabited_references)]
       pub fn id (&self) -> &EventId {
         &self.id
       }
 
       #[inline]
-      #[allow(mismatched_lifetime_syntaxes)]
+      #[expect(mismatched_lifetime_syntaxes)]
       pub fn params (&self) -> &EventParams {
         &self.params
       }

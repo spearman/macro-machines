@@ -140,7 +140,7 @@ pub trait MachineDotfile {
 /// Describes an exceptional result when attempting to handle an event.
 ///
 /// Currently the only exception is the '`WrongState`' exception.
-#[derive(Debug, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum HandleEventException {
   WrongState
 }
@@ -234,7 +234,7 @@ fn machine_dotfile <M : MachineDotfile>
 
     let len = extended_string.len();
     extended_string.truncate (len - separator.len());
-    s.push_str (extended_string.to_string().as_str());
+    s.push_str (extended_string.as_str());
   } // end extended state
 
   s.push_str ("<BR ALIGN=\"LEFT\"/>");
@@ -332,7 +332,7 @@ fn machine_dotfile <M : MachineDotfile>
       }
       let len = data_string.len();
       data_string.truncate (len - separator.len());
-      s.push_str (data_string.to_string().as_str());
+      s.push_str (data_string.as_str());
     }
 
     /*
@@ -410,7 +410,7 @@ fn machine_dotfile <M : MachineDotfile>
           };
           // TODO: different formatting if params or guards were present
           //action = "  ".to_string() + action.as_str();
-          s.push_str (escape (action_string).to_string().as_str());
+          s.push_str (escape (action_string).as_str());
         }
       }
     }
@@ -492,7 +492,7 @@ pub mod example {
 mod tests {
   use super::*;
   #[test]
-  fn test_initial() {
+  fn initial() {
     {
       def_machine!{
         Test () {
@@ -516,7 +516,7 @@ mod tests {
     }
   }
   #[test]
-  fn test_new() {
+  fn new() {
     {
       def_machine!{
         Test () {
@@ -560,7 +560,7 @@ mod tests {
     }
   }
   #[test]
-  fn test_event_internal() {
+  fn event_internal() {
     {
       def_machine!{
         Test () {
@@ -604,7 +604,7 @@ mod tests {
     }
   }
   #[test]
-  fn test_event_external() {
+  fn event_external() {
     {
       def_machine!{
         Test () {
