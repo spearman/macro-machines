@@ -7,8 +7,9 @@ if rg "FIXME"; then
   echo "pre-push hook failed: FIXME not allowed"
   exit 1
 fi
+cargo udeps --all-targets --all-features
 export RUSTFLAGS="-D warnings"
-cargo clippy --all-features
+cargo clippy --all-targets --all-features
 cargo test --all-features
 yamllint --no-warnings .github/workflows/ci.yml
 

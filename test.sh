@@ -3,7 +3,7 @@
 set -e
 set -x
 
-cargo clippy --all-features
+cargo clippy --all-targets --all-features
 cargo test --all-features
 
 exit 0

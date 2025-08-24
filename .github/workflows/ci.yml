@@ -27,7 +27,7 @@ jobs:
           toolchain: stable
           components: clippy
       - name: clippy
-        run: cargo clippy --all-features
+        run: cargo clippy --all-targets --all-features
 
   test:
     runs-on: ubuntu-latest

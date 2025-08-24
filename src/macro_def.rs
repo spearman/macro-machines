@@ -118,18 +118,10 @@ macro_rules! def_machine {
         _v
       }
       fn extended_state_names() -> Vec <&'static str> {
-        let mut _v = Vec::new();
-        $(
-        _v.push (stringify!($ext_name));
-        )*
-        _v
+        vec![$(stringify!($ext_name)),*]
       }
       fn extended_state_types() -> Vec <&'static str> {
-        let mut _v = Vec::new();
-        $(
-        _v.push (stringify!($ext_type));
-        )*
-        _v
+        vec![$(stringify!($ext_type)),*]
       }
       fn extended_state_defaults() -> Vec <&'static str> {
         let mut _v = Vec::new();
@@ -149,11 +141,7 @@ macro_rules! def_machine {
         stringify!($($self_reference)*)
       }
       fn states() -> Vec <&'static str> {
-        let mut v = Vec::new();
-        $(
-        v.push (stringify!($state));
-        )+
-        v
+        vec![$(stringify!($state)),+]
       }
       fn state_initial() -> &'static str {
         stringify!($initial)
@@ -213,32 +201,16 @@ macro_rules! def_machine {
         v
       }
       fn events() -> Vec <&'static str> {
-        let mut _v = Vec::new();
-        $(
-        _v.push (stringify!($event));
-        )*
-        _v
+        vec![$(stringify!($event)),*]
       }
       fn event_sources() -> Vec <&'static str> {
-        let mut _v = Vec::new();
-        $(
-        _v.push (stringify!($source));
-        )*
-        _v
+        vec![$(stringify!($source)),*]
       }
       fn event_targets() -> Vec <&'static str> {
-        let mut _v = Vec::new();
-        $(
-        _v.push (stringify!($($target)*));
-        )*
-        _v
+        vec![$(stringify!($($target)*)),*]
       }
       fn event_actions() -> Vec <&'static str> {
-        let mut _v = Vec::new();
-        $(
-        _v.push (stringify!($($action)*));
-        )*
-        _v
+        vec![$(stringify!($($action)*)),*]
       }
     } // end impl MachineDotfile
 
@@ -895,6 +867,7 @@ macro_rules! def_machine {
         StateId::$terminal
       }
       )*
+      #[expect(clippy::wrong_self_convention)]
       pub fn to_state $(<$($type_var),+>)* (self,
         extended_state : &mut ExtendedState$(<$($type_var),+>)*) -> State
       where
@@ -1087,11 +1060,7 @@ macro_rules! def_machine_nodefault {
         stringify!($($self_reference)*)
       }
       fn states() -> Vec <&'static str> {
-        let mut v = Vec::new();
-        $(
-        v.push (stringify!($state));
-        )+
-        v
+        vec![$(stringify!($state)),+]
       }
       fn state_initial() -> &'static str {
         stringify!($initial)
@@ -1139,32 +1108,16 @@ macro_rules! def_machine_nodefault {
         v
       }
       fn events() -> Vec <&'static str> {
-        let mut _v = Vec::new();
-        $(
-        _v.push (stringify!($event));
-        )*
-        _v
+        vec![$(stringify!($event)),*]
       }
       fn event_sources() -> Vec <&'static str> {
-        let mut _v = Vec::new();
-        $(
-        _v.push (stringify!($source));
-        )*
-        _v
+        vec![$(stringify!($source)),*]
       }
       fn event_targets() -> Vec <&'static str> {
-        let mut _v = Vec::new();
-        $(
-        _v.push (stringify!($($target)*));
-        )*
-        _v
+        vec![$(stringify!($($target)*)),*]
       }
       fn event_actions() -> Vec <&'static str> {
-        let mut _v = Vec::new();
-        $(
-        _v.push (stringify!($($action)*));
-        )*
-        _v
+        vec![$(stringify!($($action)*)),*]
       }
     } // end impl MachineDotfile
 
@@ -1414,11 +1367,7 @@ macro_rules! def_machine_debug {
         stringify!($($self_reference)*)
       }
       fn states() -> Vec <&'static str> {
-        let mut v = Vec::new();
-        $(
-        v.push (stringify!($state));
-        )+
-        v
+        vec![$(stringify!($state)),+]
       }
       fn state_initial() -> &'static str {
         stringify!($initial)
@@ -1478,32 +1427,16 @@ macro_rules! def_machine_debug {
         v
       }
       fn events() -> Vec <&'static str> {
-        let mut _v = Vec::new();
-        $(
-        _v.push (stringify!($event));
-        )*
-        _v
+        vec![$(stringify!($event)),*]
       }
       fn event_sources() -> Vec <&'static str> {
-        let mut _v = Vec::new();
-        $(
-        _v.push (stringify!($source));
-        )*
-        _v
+        vec![$(stringify!($source)),*]
       }
       fn event_targets() -> Vec <&'static str> {
-        let mut _v = Vec::new();
-        $(
-        _v.push (stringify!($($target)*));
-        )*
-        _v
+        vec![$(stringify!($($target)*)),*]
       }
       fn event_actions() -> Vec <&'static str> {
-        let mut _v = Vec::new();
-        $(
-        _v.push (stringify!($($action)*));
-        )*
-        _v
+        vec![$(stringify!($($action)*)),*]
       }
     } // end impl MachineDotfile
 
@@ -2172,6 +2105,7 @@ macro_rules! def_machine_debug {
         StateId::$terminal
       }
       )*
+      #[expect(clippy::wrong_self_convention)]
       pub fn to_state $(<$($type_var),+>)* (self,
         extended_state : &mut ExtendedState$(<$($type_var),+>)*) -> State
       where
@@ -2342,35 +2276,19 @@ macro_rules! def_machine_nodefault_debug {
         _v
       }
       fn extended_state_names() -> Vec <&'static str> {
-        let mut _v = Vec::new();
-        $(
-        _v.push (stringify!($ext_name));
-        )*
-        _v
+        vec![$(stringify!($ext_name)),*]
       }
       fn extended_state_types() -> Vec <&'static str> {
-        let mut _v = Vec::new();
-        $(
-        _v.push (stringify!($ext_type));
-        )*
-        _v
+        vec![$(stringify!($ext_type)),*]
       }
       fn extended_state_defaults() -> Vec <&'static str> {
-        let mut _v = Vec::new();
-        $(
-        _v.push (stringify!($($ext_default)*));
-        )*
-        _v
+        vec![$(stringify!($($ext_default)*)),*]
       }
       fn self_reference() -> &'static str {
         stringify!($($self_reference)*)
       }
       fn states() -> Vec <&'static str> {
-        let mut v = Vec::new();
-        $(
-        v.push (stringify!($state));
-        )+
-        v
+        vec![$(stringify!($state)),+]
       }
       fn state_initial() -> &'static str {
         stringify!($initial)
@@ -2419,32 +2337,16 @@ macro_rules! def_machine_nodefault_debug {
       }
 
       fn events() -> Vec <&'static str> {
-        let mut _v = Vec::new();
-        $(
-        _v.push (stringify!($event));
-        )*
-        _v
+        vec![$(stringify!($event)),*]
       }
       fn event_sources() -> Vec <&'static str> {
-        let mut _v = Vec::new();
-        $(
-        _v.push (stringify!($source));
-        )*
-        _v
+        vec![$(stringify!($source)),*]
       }
       fn event_targets() -> Vec <&'static str> {
-        let mut _v = Vec::new();
-        $(
-        _v.push (stringify!($($target)*));
-        )*
-        _v
+        vec![$(stringify!($($target)*)),*]
       }
       fn event_actions() -> Vec <&'static str> {
-        let mut _v = Vec::new();
-        $(
-        _v.push (stringify!($($action)*));
-        )*
-        _v
+        vec![$(stringify!($($action)*)),*]
       }
     }
 
@@ -2464,13 +2366,7 @@ macro_rules! def_machine_nodefault_debug {
             if let Some ($ext_name) = $ext_name {
               $ext_name
             } else {
-              if let Some (default) =
-                $crate::def_machine_debug!(@expr_option $($ext_default)*)
-              {
-                default
-              } else {
-                return None
-              }
+              $crate::def_machine_debug!(@expr_option $($ext_default)*)?
             }
           }),*
         })
