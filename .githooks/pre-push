@@ -1,6 +1,15 @@
 #!/usr/bin/env bash
 
 set -e
+
+git_status="$(git status --porcelain)"
+if test -n "$git_status"; then
+  echo "$git_status"
+  echo "pre-push hook failed: working directory is dirty"
+  exit 1
+fi
+echo "working directory is clean"
+
 set -x
 
 if rg "FIXME" --hidden --glob="!$0" "$PWD"; then
