@@ -2,8 +2,9 @@
 
 set -e
 
+echo "+ git status --porcelain"
 git_status="$(git status --porcelain)"
-if test -n "$git_status"; then
+if [ "$git_status" != "" ]; then
   echo "$git_status"
   echo "pre-push hook failed: working directory is dirty"
   exit 1

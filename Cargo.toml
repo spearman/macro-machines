@@ -16,6 +16,9 @@ variant_count = "1.*"
 [dev-dependencies]
 env_logger = { version = "0.11.*", features = ["kv"] }
 
+[lints.rust]
+unknown-lints = "deny"
+
 [lints.clippy]
 disallowed-names = "allow"
 empty-line-after-doc-comments = "allow"

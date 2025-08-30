@@ -9,6 +9,7 @@ on:
 
 env:
   RUSTFLAGS: "-D warnings"
+  RUST_TOOLCHAIN: "1.89"
 
 jobs:
   check:
