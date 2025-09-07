@@ -82,11 +82,10 @@
 
 #![cfg_attr(test, allow(dead_code, unreachable_code))]
 
-pub extern crate log;
-extern crate marksman_escape;
-extern crate variant_count;
-
+pub use log;
 pub use variant_count::VariantCount;
+
+use marksman_escape;
 
 mod macro_def;
 
@@ -490,6 +489,8 @@ pub mod example {
 
 #[cfg(test)]
 mod tests {
+  #![expect(unreachable_pub)]
+
   use super::*;
   #[test]
   fn initial() {
