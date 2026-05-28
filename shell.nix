@@ -5,7 +5,6 @@ mkShell {
     gdb # required for rust-gdb
     gh
     rustup
-    rust-analyzer
     yamllint
   ];
 }

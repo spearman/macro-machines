@@ -13,6 +13,7 @@ echo "working directory is clean"
 
 set -x
 
+command -v rg >/dev/null 2>&1 || { echo "rg command not found"; exit 1; }
 if rg "FIXME" --hidden --glob="!$0" "$PWD"; then
   echo "pre-push hook failed: FIXME not allowed"
   exit 1
