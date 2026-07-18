@@ -1,5 +1,18 @@
 # `macro-machines`
 
+[![Latest Version]][crates.io] [![Rust Version]][Rust 1.85] [![License]][license-file] [![Documentation]][docs] [![Build Status]][actions]
+
+[Latest Version]: https://img.shields.io/crates/v/macro-machines.svg
+[crates.io]: https://crates.io/crates/macro-machines
+[Rust Version]: https://img.shields.io/crates/msrv/macro-machines.svg
+[Rust 1.85]: https://blog.rust-lang.org/2025/03/18/Rust-1.85.1/
+[License]: https://img.shields.io/crates/l/macro-machines.svg
+[license-file]: https://github.com/spearman/macro-machines/blob/master/LICENSE
+[Documentation]: https://docs.rs/macro-machines/badge.svg
+[docs]: https://docs.rs/macro-machines
+[Build Status]: https://img.shields.io/github/actions/workflow/status/spearman/macro-machines/ci.yml
+[actions]: https://github.com/spearman/macro-machines/actions
+
 > State machine macros with logging and graphviz dotfile generation
 
 [Documentation](https://docs.rs/macro-machines)

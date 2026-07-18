@@ -1,12 +1,13 @@
 [package]
 name = "macro-machines"
-version = "0.10.8"
+version = "0.10.9"
 authors = ["Shane Pearman <spearman@github.com>"]
 license = "MPL-2.0"
 description = "State machine macros with logging and graphviz DOT file generation"
 repository = "https://github.com/spearman/macro-machines"
 readme = "README.md"
 edition = "2024"
+rust-version = "1.85.1"
 
 [dependencies]
 log = { version = "0.4.*", features = ["kv"] }
