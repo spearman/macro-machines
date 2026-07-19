@@ -1,4 +1,4 @@
-# `macro-machines`
+# `macro_machines`
 
 [![Latest Version]][crates.io] [![Rust Version]][Rust 1.85] [![License]][license-file] [![Documentation]][docs] [![Build Status]][actions]
 
